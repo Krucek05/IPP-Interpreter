@@ -1,6 +1,6 @@
 name: Mirror to Gitea
 
-on: [push, delete] # Spustí sa pri každom pushi alebo zmazaní vetvy
+on: [push, delete]
 
 jobs:
   gitea-mirror:
@@ -8,10 +8,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0 
+          fetch-depth: 0
       - name: Mirror to Gitea
-        uses: pixta-dev/repository-mirroring-action@v1
-        with:
-          target_repo_url: ${{ secrets.GITEA_URL }}
-          target_username: "xrucekk00"
-          target_password: ${{ secrets.GITEA_TOKEN }}
+        run: |
+          # Vytvoríme URL so zapuzdreným tokenom pre autentifikáciu
+          # GITEA_URL musí byť v tvare: https://gitea.fit.vut.cz/xlogin00/ipp-projekt.git
+          REMOTE_URL="https://${{ github.actor }}:${{ secrets.GITEA_TOKEN }}@${{ secrets.GITEA_URL | replace('https://', '') }}"
+          git push --mirror $REMOTE_URL
