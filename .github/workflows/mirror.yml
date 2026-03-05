@@ -11,7 +11,11 @@ jobs:
           fetch-depth: 0
       - name: Mirror to Gitea
         run: |
-          # Vytvoríme URL so zapuzdreným tokenom pre autentifikáciu
-          # GITEA_URL musí byť v tvare: https://gitea.fit.vut.cz/xlogin00/ipp-projekt.git
-          REMOTE_URL="https://${{ github.actor }}:${{ secrets.GITEA_TOKEN }}@${{ secrets.GITEA_URL | replace('https://', '') }}"
+          # Vyčistíme URL od prípadného https:// na začiatku
+          CLEAN_URL=$(echo "${{ secrets.GITEA_URL }}" | sed 's|https://||')
+          
+          # Poskladáme finálnu URL s autentifikáciou
+          REMOTE_URL="https://${{ github.actor }}:${{ secrets.GITEA_TOKEN }}@$CLEAN_URL"
+          
+          # Pushneme mirror
           git push --mirror $REMOTE_URL
