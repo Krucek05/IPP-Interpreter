@@ -1,16 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<program language="SOL26">
+<program language="SOL26" description="42">
   <class name="Main" parent="Object">
     <method selector="run">
       <block arity="0">
         <assign order="1">
           <var name="_"/>
           <expr>
-            <send selector="print">
-              <expr>
-                <literal class="String" value="42"/>
-              </expr>
-            </send>
+            <var name="print"/>
           </expr>
         </assign>
       </block>

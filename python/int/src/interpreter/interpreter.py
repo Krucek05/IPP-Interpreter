@@ -18,18 +18,11 @@ from pydantic import ValidationError
 from interpreter.error_codes import ErrorCode
 from interpreter.exceptions import InterpreterError
 from interpreter.input_model import Program
+from interpreter.integer_object import IntegerObject
+from interpreter.object import SolObject
+from interpreter.string_object import StringObject
 
 logger = logging.getLogger(__name__)
-
-
-class SolObject:
-    """
-    SOL class, responsible for representing everything
-    """
-
-    def __init__(self, class_name: str, value: object = None):
-        self.class_name = class_name
-        self.value = value
 
 
 class Interpreter:
@@ -91,11 +84,14 @@ class Interpreter:
                 return SolObject("Nil", None)
             if node_class == "Integer":
                 assert node_value is not None
-                int_value = int(node_value)
-            return SolObject(node_class, int_value)
+                return IntegerObject(int(node_value))
+            if node_class == "String":
+                assert node_value is not None
+                return StringObject(node_value)
+            return SolObject(node_class, node_value)
 
         if node.tag == "send":
-            return self.sending(node)
+            return self.sending_message(node)
 
         if node.tag == "var":
             var_name = node.get("name")
@@ -105,7 +101,7 @@ class Interpreter:
 
         return SolObject("Nil", None)
 
-    def sending(self, sender: etree._Element) -> SolObject:
+    def sending_message(self, sender: etree._Element) -> SolObject:
         """Finds proper selector, calls evaluations of expression and executed choosen funcion"""
         selector = sender.get("selector")
 
@@ -114,17 +110,11 @@ class Interpreter:
         output = self.evaluate_node(output_node)
 
         if selector == "print":
-            return self.sol_print(output)
+            if not isinstance(output, StringObject):
+                raise InterpreterError(ErrorCode.SEM_ARITY, "print can only be called on String")
+            return output.sol_print()
 
         return output
-
-    def sol_print(self, input_variable: SolObject) -> SolObject:
-        """Prints object value to stdin"""
-        output_value = str(input_variable.value)
-
-        print(output_value)
-
-        return input_variable
 
     def execute(self, input_io: TextIO) -> None:
         """
