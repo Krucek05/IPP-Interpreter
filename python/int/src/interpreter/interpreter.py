@@ -4,7 +4,7 @@ This module contains the main logic of the interpreter.
 IPP: You must definitely modify this file. Bend it to your will.
 
 Author: Ondřej Ondryáš <iondryas@fit.vut.cz>
-Author:
+Author: Kristian Rucek xrucekk00
 """
 
 import logging
@@ -91,7 +91,7 @@ class Interpreter:
             return SolObject(node_class, node_value)
 
         if node.tag == "send":
-            return self.sending_message(node)
+            return self.dispatching(node)
 
         if node.tag == "var":
             var_name = node.get("name")
@@ -101,7 +101,7 @@ class Interpreter:
 
         return SolObject("Nil", None)
 
-    def sending_message(self, sender: etree._Element) -> SolObject:
+    def dispatching(self, sender: etree._Element) -> SolObject:
         """Finds proper selector, calls evaluations of expression and executed choosen funcion"""
         selector = sender.get("selector")
 
