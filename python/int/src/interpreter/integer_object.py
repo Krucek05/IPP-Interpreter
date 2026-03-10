@@ -55,9 +55,9 @@ class IntegerObject(SolObject):
 
         return StringObject(str(self.value))
 
-    def as_integer(self, number: int) -> int:
+    def as_integer(self) -> SolObject:
         """Returns integer itself"""
-        return number
+        return self
 
     def times_repeated(self, block: SolObject) -> SolObject:
         """Executes block number of times — block execution handled by interpreter"""

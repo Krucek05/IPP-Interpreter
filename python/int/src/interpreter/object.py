@@ -19,6 +19,10 @@ class SolObject:
         """Returns string representation of object"""
         return SolObject("String", "")
 
+    def as_integer(self) -> SolObject:
+        """Returns integer representation of object, Nil by default"""
+        return SolObject("Nil", None)
+
     def identical_to(self, other: SolObject) -> bool:
         """Evaluates if two objects are identical"""
         return self is other

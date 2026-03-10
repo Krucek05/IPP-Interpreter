@@ -17,7 +17,7 @@ from pydantic import ValidationError
 
 from interpreter.error_codes import ErrorCode
 from interpreter.exceptions import InterpreterError
-from interpreter.input_model import Program
+from interpreter.input_model import Expr, Program, Send
 from interpreter.integer_object import IntegerObject
 from interpreter.object import SolObject
 from interpreter.string_object import StringObject
@@ -33,16 +33,15 @@ class Interpreter:
     def __init__(self) -> None:
         self.current_program: Program | None = None
         self.variables: dict[str, SolObject] = {}
-        self.xml_tree: etree._ElementTree | None = None
-        self.root: etree._Element | None = None
 
     def check_main(self) -> None:
-        """Checks if class Main exists and if there is selector run"""
-        assert self.root is not None
+        """Checks if class Main exists and has a run method"""
+        assert self.current_program is not None
 
-        if not self.root.xpath('//class[@name="Main"]'):
+        main_class = next((c for c in self.current_program.classes if c.name == "Main"), None)
+        if main_class is None:
             raise InterpreterError(ErrorCode.SEM_MAIN, "Missing Main class")
-        if not self.root.xpath('//class[@name="Main"]/method[@selector="run"]'):
+        if not any(m.selector == "run" for m in main_class.methods):
             raise InterpreterError(ErrorCode.SEM_MAIN, "Main missing run method")
 
     def load_program(self, source_file_path: Path) -> None:
@@ -57,8 +56,7 @@ class Interpreter:
         logger.info("Opening source file: %s", source_file_path)
         try:
             xml_tree = etree.parse(source_file_path)
-            self.xml_tree = xml_tree
-            self.root = self.xml_tree.getroot()
+            print(etree.tostring(xml_tree, pretty_print=True).decode())
         except ParseError as e:
             raise InterpreterError(
                 error_code=ErrorCode.INT_XML, message="Error parsing input XML"
@@ -72,70 +70,67 @@ class Interpreter:
 
         self.check_main()
 
-    def evaluate_node(self, node: etree._Element) -> SolObject:
-        """Evaulating what contains current node"""
-        if node.tag == "expr":
-            return self.evaluate_node(node[0])  # find child
+    def evaluate_expr(self, expr: Expr) -> SolObject:
+        """Evaluates a Expr into a SolObject"""
+        if expr.literal is not None:
+            lit = expr.literal
+            if lit.class_id == "Integer":
+                return IntegerObject(int(lit.value))
+            if lit.class_id == "String":
+                return StringObject(lit.value)
+            return SolObject(lit.class_id, lit.value)
 
-        if node.tag == "literal":
-            node_class = node.get("class")
-            node_value = node.get("value")
-            if node_class is None:
-                return SolObject("Nil", None)
-            if node_class == "Integer":
-                assert node_value is not None
-                return IntegerObject(int(node_value))
-            if node_class == "String":
-                assert node_value is not None
-                return StringObject(node_value)
-            return SolObject(node_class, node_value)
+        if expr.var is not None:
+            var_name = expr.var.name
+            if var_name in self.variables:
+                return self.variables[var_name]
+            return SolObject("Nil", None)
 
-        if node.tag == "send":
-            return self.dispatching(node)
+        if expr.send is not None:
+            return self.dispatch(expr.send)
 
-        if node.tag == "var":
-            var_name = node.get("name")
-            if var_name is None:
-                return SolObject("Nil", None)
-            return self.variables.get(var_name, SolObject("Nil", None))
-
+        # block literal — not yet supported
         return SolObject("Nil", None)
 
-    def dispatching(self, sender: etree._Element) -> SolObject:
-        """Finds proper selector, calls evaluations of expression and executed choosen funcion"""
-        selector = sender.get("selector")
-
-        output_node = sender.find("expr")
-        assert output_node is not None
-        output = self.evaluate_node(output_node)
+    def dispatch(self, send: Send) -> SolObject:
+        """Dispatches a message send to the appropriate handler"""
+        receiver = self.evaluate_expr(send.receiver)
+        selector = send.selector
 
         if selector == "print":
-            if not isinstance(output, StringObject):
+            if not isinstance(receiver, StringObject):
                 raise InterpreterError(ErrorCode.SEM_ARITY, "print can only be called on String")
-            return output.sol_print()
+            return receiver.sol_print()
 
-        return output
+        if selector == "asString":
+            return receiver.as_string()
+
+        if selector == "asInteger":
+            return receiver.as_integer()
+
+        if selector == "identicalTo":
+            first_arg = send.args[0].expr
+            other = self.evaluate_expr(first_arg)
+            return SolObject("Boolean", receiver.identical_to(other))
+
+        if selector == "equalTo":
+            first_arg = send.args[0].expr
+            other = self.evaluate_expr(first_arg)
+            return SolObject("Boolean", receiver.equal_to(other))
+
+        return receiver
 
     def execute(self, input_io: TextIO) -> None:
         """
         Executes the currently loaded program, using the provided input stream as standard input.
         """
         logger.info("Executing program")
+        assert self.current_program is not None
 
-        assert self.root is not None
+        main_class = next(c for c in self.current_program.classes if c.name == "Main")
+        run_method = next(m for m in main_class.methods if m.selector == "run")
 
-        run_block = self.root.find('.//class[@name="Main"]/method[@selector="run"]/block')
-        assert run_block is not None
-
-        for assign in sorted(run_block.findall("assign"), key=lambda x: int(x.get("order", 0))):
-            expr_node = assign.find("expr")
-            assert expr_node is not None
-            value = self.evaluate_node(expr_node)
-
-            var_elem = assign.find("var")
-            assert var_elem is not None
-            var_name = var_elem.get("name")
-            assert var_name is not None
-
-            if var_name != "_":
-                self.variables[var_name] = value
+        for assign in run_method.block.assigns:  # already sorted by model_post_init
+            value = self.evaluate_expr(assign.expr)
+            if assign.target.name != "_":
+                self.variables[assign.target.name] = value
