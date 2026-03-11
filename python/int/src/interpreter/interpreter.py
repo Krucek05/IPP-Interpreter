@@ -15,6 +15,7 @@ from lxml import etree
 from lxml.etree import ParseError
 from pydantic import ValidationError
 
+from interpreter.block_object import BlockObject
 from interpreter.boolean_object import FALSE, TRUE
 from interpreter.error_codes import ErrorCode
 from interpreter.exceptions import InterpreterError
@@ -79,27 +80,28 @@ class Interpreter:
                 return IntegerObject(int(lit.value))
             if lit.class_id == "String":
                 return StringObject(lit.value)
-            return SolObject(lit.class_id, lit.value)
             if lit.class_id == "Nil":
                 return NIL
             if lit.class_id == "True":
                 return TRUE
             if lit.class_id == "False":
                 return FALSE
-            if lit.class_id == "class":
-                return SolObject("class", lit.value)
+            # class literal — e.g. <literal class="class" value="Integer"/>
+            return SolObject("class", lit.value)
+
+        if expr.block is not None:
+            return BlockObject(expr.block)
 
         if expr.var is not None:
             var_name = expr.var.name
             if var_name in self.variables:
                 return self.variables[var_name]
-            return SolObject("Nil", None)
+            return NIL
 
         if expr.send is not None:
             return self.dispatch(expr.send)
 
-        # block literal — not yet supported
-        return SolObject("Nil", None)
+        return NIL
 
     def dispatch(self, send: Send) -> SolObject:
         """Dispatches a message send to the appropriate handler"""
@@ -155,4 +157,5 @@ class Interpreter:
             if assign.target.name != "_":
                 self.variables[assign.target.name] = value
 
+        # print(self.current_program)
         logger.info("Program execution finished")
