@@ -1,0 +1,35 @@
+ahoj
+language='SOL26' description='a = instance 14' classes=[ClassDef(name='Main', 
+parent='Object', methods=[Method(selector='run', block=Block(arity=0, parameters=[],
+ assigns=[Assign(order=1, target=Var(name='a'), expr=Expr(literal=None, var=None, 
+ block=None, send=Send(selector='foo:', receiver=Expr(literal=None, var=Var(name='self'),
+  block=None, send=None), args=[Arg(order=1, expr=Expr(literal=Literal(class_id='Integer',
+   value='4'), var=None, block=None, send=None))]))), Assign(order=2, target=Var(name='b'), expr=Expr(literal=None, var=None, block=Block(arity=1, parameters=[Parameter(order=1, name='x')], assigns=[Assign(order=1, target=Var(name='_'), expr=Expr(literal=Literal(class_id='Integer', value='42'), var=None, block=None, send=None))]), send=None)), Assign(order=3, target=Var(name='c'), expr=Expr(literal=None, var=None, block=None, send=Send(selector='value:', receiver=Expr(literal=None, var=Var(name='b'), block=None, send=None), args=[Arg(order=1, expr=Expr(literal=Literal(class_id='Integer', value='16'), var=None, block=None, send=None))]))), Assign(order=4, target=Var(name='d'), expr=Expr(literal=None, var=None, block=None, send=Send(selector='print', receiver=Expr(literal=Literal(class_id='String', value='ahoj'), var=None, block=None, send=None), args=[])))])), Method(selector='foo:', block=Block(arity=1, parameters=[Parameter(order=1, name='x')], assigns=[Assign(order=1, target=Var(name='u'), expr=Expr(literal=None, var=None, block=None, send=Send(selector='plus:', receiver=Expr(literal=None, var=Var(name='x'), block=None, send=None), args=[Arg(order=1, expr=Expr(literal=Literal(class_id='Integer', value='10'), var=None, block=None, send=None))])))]))])]
+   
+
+
+Program:
+  language = SOL26
+  description = "a = instance 14"
+
+  Class: Main : Object
+  │
+  ├── Method: run  (0 params)
+  │   │
+  │   ├── [1]  a := self foo: 4
+  │   │           → send "foo:" to self, arg = Integer(4)
+  │   │
+  │   ├── [2]  b := [ :x | _ := 42 ]
+  │   │           → block literal, 1 param (x)
+  │   │             body: _ := Integer(42)
+  │   │
+  │   ├── [3]  c := b value: 16
+  │   │           → send "value:" to var b, arg = Integer(16)
+  │   │
+  │   └── [4]  d := 'ahoj' print
+  │               → send "print" to String("ahoj")
+  │
+  └── Method: foo:  (1 param: x)
+      │
+      └── [1]  u := x plus: 10
+                  → send "plus:" to var x, arg = Integer(10)

@@ -1,0 +1,9 @@
+language='SOL26' 
+description='42' 
+  classes=
+    [ClassDef
+      (name='Main', parent='Object', methods=
+          [Method(selector='run', block=Block(arity=0, parameters=[], 
+                assigns=[Assign(order=1, target=
+              Var(name='_'), expr=Expr(literal=None, var=
+                  Var(name='print'), block=None, send=None))]))])]
