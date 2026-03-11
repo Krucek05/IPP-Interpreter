@@ -18,3 +18,7 @@ class BlockObject(SolObject):
 
     def while_true(self, block: SolObject) -> None:
         """Executes block while condition is true"""
+
+    def is_block(self) -> bool:
+        """Evaluates if object is block"""
+        return True

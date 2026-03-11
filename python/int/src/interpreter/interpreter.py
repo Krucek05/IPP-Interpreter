@@ -15,10 +15,12 @@ from lxml import etree
 from lxml.etree import ParseError
 from pydantic import ValidationError
 
+from interpreter.boolean_object import FALSE, TRUE
 from interpreter.error_codes import ErrorCode
 from interpreter.exceptions import InterpreterError
 from interpreter.input_model import Expr, Program, Send
 from interpreter.integer_object import IntegerObject
+from interpreter.nil_object import NIL
 from interpreter.object import SolObject
 from interpreter.string_object import StringObject
 
@@ -56,7 +58,6 @@ class Interpreter:
         logger.info("Opening source file: %s", source_file_path)
         try:
             xml_tree = etree.parse(source_file_path)
-            print(etree.tostring(xml_tree, pretty_print=True).decode())
         except ParseError as e:
             raise InterpreterError(
                 error_code=ErrorCode.INT_XML, message="Error parsing input XML"
@@ -79,6 +80,14 @@ class Interpreter:
             if lit.class_id == "String":
                 return StringObject(lit.value)
             return SolObject(lit.class_id, lit.value)
+            if lit.class_id == "Nil":
+                return NIL
+            if lit.class_id == "True":
+                return TRUE
+            if lit.class_id == "False":
+                return FALSE
+            if lit.class_id == "class":
+                return SolObject("class", lit.value)
 
         if expr.var is not None:
             var_name = expr.var.name
@@ -96,6 +105,17 @@ class Interpreter:
         """Dispatches a message send to the appropriate handler"""
         receiver = self.evaluate_expr(send.receiver)
         selector = send.selector
+
+        if receiver.class_name == "class":
+            if selector == "new":
+                return receiver.sol_new()
+            if selector == "from:":
+                obj = self.evaluate_expr(send.args[0].expr)
+                return receiver.sol_from(obj)
+
+        # if receiver.class_name == "Block" and selector == "whileTrue:":
+        #     block = self.evaluate_expr(send.args[0].expr)
+        #     return receiver.while_true(block)
 
         if selector == "print":
             if not isinstance(receiver, StringObject):
@@ -130,7 +150,9 @@ class Interpreter:
         main_class = next(c for c in self.current_program.classes if c.name == "Main")
         run_method = next(m for m in main_class.methods if m.selector == "run")
 
-        for assign in run_method.block.assigns:  # already sorted by model_post_init
+        for assign in run_method.block.assigns:
             value = self.evaluate_expr(assign.expr)
             if assign.target.name != "_":
                 self.variables[assign.target.name] = value
+
+        logger.info("Program execution finished")
