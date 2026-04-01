@@ -38,7 +38,3 @@ class NilObject(SolObject):
     def is_nil(self) -> bool:
         """Evaluates if object is nil"""
         return True
-
-
-# The single global nil instance
-NIL = NilObject()

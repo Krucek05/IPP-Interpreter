@@ -44,7 +44,7 @@ class Parameter(OrderedElementXmlModel, tag="parameter"):
 class Arg(OrderedElementXmlModel, tag="arg"):
     """<arg order="..."><expr>...</expr></arg>"""
 
-    expr: "Expr" = element(tag="expr")
+    expr: Expr = element(tag="expr")
 
 
 # --- Helpers ---
@@ -72,18 +72,18 @@ class Expr(BaseXmlModel, tag="expr"):
 
     literal: Literal | None = element(tag="literal", default=None)
     var: Var | None = element(tag="var", default=None)
-    block: "Block | None" = element(tag="block", default=None)
-    send: "Send | None" = element(tag="send", default=None)
+    block: Block | None = element(tag="block", default=None)
+    send: Send | None = element(tag="send", default=None)
 
     @model_validator(mode="after")
-    def _exactly_one_child(self) -> "Expr":
+    def _exactly_one_child(self) -> Expr:
         present = sum(x is not None for x in (self.literal, self.var, self.block, self.send))
         if present != 1:
             raise ValueError("<expr> must contain exactly one of: literal|var|block|send")
         return self
 
 
-class Send(BaseXmlModel, tag="send"):
+class Send(BaseXmlModel, tag="send", search_mode="unordered"):
     """
     <send selector="...">
       <expr>...</expr>              # receiver expression (required)
@@ -104,7 +104,7 @@ class Send(BaseXmlModel, tag="send"):
         self.args = sort_by_order(self.args)
 
 
-class Assign(OrderedElementXmlModel, tag="assign"):
+class Assign(OrderedElementXmlModel, tag="assign", search_mode="unordered"):
     """
     <assign order="...">
       <var name="..."/>
@@ -116,7 +116,7 @@ class Assign(OrderedElementXmlModel, tag="assign"):
     expr: Expr = element(tag="expr")
 
 
-class Block(BaseXmlModel, tag="block"):
+class Block(BaseXmlModel, tag="block", search_mode="unordered"):
     """
     <block arity="...">
       <parameter name="..." order="..."/>

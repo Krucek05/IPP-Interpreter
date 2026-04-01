@@ -21,7 +21,7 @@ from interpreter.error_codes import ErrorCode
 from interpreter.exceptions import InterpreterError
 from interpreter.input_model import Expr, Program, Send
 from interpreter.integer_object import IntegerObject
-from interpreter.nil_object import NIL
+from interpreter.nil_object import NilObject
 from interpreter.object import SolObject
 from interpreter.string_object import StringObject
 
@@ -96,12 +96,12 @@ class Interpreter:
             var_name = expr.var.name
             if var_name in self.variables:
                 return self.variables[var_name]
-            return NIL
+            return NilObject()
 
         if expr.send is not None:
             return self.dispatch(expr.send)
 
-        return NIL
+        return NilObject()
 
     def dispatch(self, send: Send) -> SolObject:
         """Dispatches a message send to the appropriate handler"""
