@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<program language="SOL26" description="Simple &amp; small">
+  <class name="Main" parent="Object"/>
+</program>

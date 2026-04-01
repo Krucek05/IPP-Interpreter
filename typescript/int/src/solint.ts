@@ -2,7 +2,8 @@
 /**
  * This script serves as the main entry point for the SOL26 interpreter.
  *
- * IPP: You should not need to modify this file.
+ * IPP: You should not need to modify this file (except for adding additional CLI arguments
+ * or using async/await in main, if you want to).
  *
  * Author: Ondřej Ondryáš <iondryas@fit.vut.cz>
  *
@@ -161,7 +162,9 @@ function main(): void {
    * The main entry point for the SOL26 interpreter. It parses command-line arguments, and uses
    * the Interpreter class to load and execute the specified program in the SOL-XML format.
    *
-   * IPP: Do not modify this function, except for adding additional CLI arguments if you wish.
+   * IPP: Do not modify this function. 
+   *      Exceptions: adding additional CLI arguments,
+   *                  converting to use Promises (async/await) if necessary.
    */
 
   // Set up logging

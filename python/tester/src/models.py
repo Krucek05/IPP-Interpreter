@@ -22,18 +22,43 @@ class TestCaseType(IntEnum):
     COMBINED = 2
 
 
-class TestCaseDefinition(BaseModel):
+class TestCaseDefinitionFile(BaseModel):
     """
-    Represents a single discovered test case.
+    Represents a single discovered test case file.
 
-    IPP: Do not modify this model directly, as it is also used in the output report.
-         You may create your own internal models derived from this one.
+    IPP: This model may (or may not) be useful for you internal processing, or you may
+         choose to create your own internal models and only in the end create the final
+         TestCaseDefinition instances to include in the output report.
+
+         Do not modify this model directly, as it is used as the parent of the
+         TestCaseDefinition model, which is included in the output report.
     """
 
     name: str = Field(
         description="The test case name, derived from the test case file name without "
         "the '.test' extension.",
     )
+    test_source_path: Path = Field(description="Path to the test case definition file ('.test').")
+    stdin_file: Path | None = Field(
+        default=None,
+        description="Path to a file with the standard input contents for the interpreter."
+        "Present if the '.in' file was discovered.",
+    )
+    expected_stdout_file: Path | None = Field(
+        default=None,
+        description="Path to a file with the expected standard output of the interpreter. "
+        "Present if the '.out' file was discovered.",
+    )
+
+
+class TestCaseDefinition(TestCaseDefinitionFile):
+    """
+    Represents a single discovered test case (that was successfully parsed).
+
+    IPP: Do not modify this model directly, as it is also used in the output report.
+         You may create your own internal models derived from this one.
+    """
+
     test_type: TestCaseType = Field(
         description="The type of the test case, which determines how it should be executed "
         "and what exit codes are expected."
@@ -48,17 +73,6 @@ class TestCaseDefinition(BaseModel):
     )
     points: int = Field(
         default=1, description="The number of points awarded for passing this test case."
-    )
-    test_source_path: Path = Field(description="Path to the test case definition file ('.test').")
-    stdin_file: Path | None = Field(
-        default=None,
-        description="Path to a file with the standard input contents for the interpreter."
-        "Present if the '.in' file was discovered.",
-    )
-    expected_stdout_file: Path | None = Field(
-        default=None,
-        description="Path to a file with the expected standard output of the interpreter. "
-        "Present if the '.out' file was discovered.",
     )
     expected_parser_exit_codes: list[int] | None = Field(
         default=None,
@@ -183,7 +197,10 @@ class CategoryReport(BaseModel):
 class TestReport(BaseModel):
     """Represents the report generated after processing the test cases."""
 
-    discovered_test_cases: list[TestCaseDefinition]
+    discovered_test_cases: list[TestCaseDefinition] = Field(
+        default_factory=list,
+        description="A list of all discovered test cases that were successfully parsed.",
+    )
     unexecuted: dict[str, UnexecutedReason] = Field(
         default_factory=dict,
         description="A mapping from a test case name to the reason why it was not executed.",

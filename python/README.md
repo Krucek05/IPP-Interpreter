@@ -24,6 +24,9 @@ které upozorňuje na příliš komplexní funkce podle jisté metriky. V příp
 doporučujeme pořádně se zamyslet, zda opravdu nelze kód napsat jinak. Pokud ne, obraťte se s žádostí
 o potvrzení na cvičicí (na fóru).
 
+V projektu s testovacím nástrojem je možné ignorovat pravidla [S602 až S607](https://docs.astral.sh/ruff/rules/#flake8-bandit-s).
+Je však vhodné, abyste pochopili jejich význam.
+
 Pokud vám některá pravidla budou připadat příliš restriktivní, obraťte se na nás na fóru. V případě 
 dobré argumentace se zde pak mohou objevit další povolené výjimky. Nástroje pro kontrolu kvality kódu 
 nemusí mít vždycky pravdu.

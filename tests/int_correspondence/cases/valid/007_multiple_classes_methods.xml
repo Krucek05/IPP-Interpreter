@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<program language="SOL26" description="Multi-class">
+  <class name="Base" parent="Object">
+    <method selector="id">
+      <block arity="0">
+        <assign order="1">
+          <var name="r"/>
+          <expr>
+            <literal class="Integer" value="1"/>
+          </expr>
+        </assign>
+      </block>
+    </method>
+  </class>
+  <class name="Main" parent="Base">
+    <method selector="run">
+      <block arity="0">
+        <assign order="2">
+          <var name="msg"/>
+          <expr>
+            <literal class="String" value="hello"/>
+          </expr>
+        </assign>
+        <assign order="1">
+          <var name="obj"/>
+          <expr>
+            <var name="self"/>
+          </expr>
+        </assign>
+      </block>
+    </method>
+    <method selector="noop">
+      <block arity="0"/>
+    </method>
+  </class>
+</program>

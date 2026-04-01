@@ -42,3 +42,10 @@ node dist/tester.js [argumenty pro skript]
 # alternativa (zkratka pro předchozí dva příkazy):
 npm start -- [argumenty pro skript]
 ```
+
+## Povolené úpravy šablon
+
+V obou částech projektu můžete využívat syntaxi „async/await“, pokud vás k tomu dovede např. nějaký aspekt práce
+se souborovým systémem. Zejména v interpretu tedy můžete i funkci `main()` ve vstupním skriptu `solint.ts` upravit
+tak, že půjde o `async` funkci (nezapomeňte pak upravit i návratový typ a při jejím volání na samém konci souboru
+použít `await`).

@@ -31,3 +31,6 @@ narazili na kód v jazyce SOL26, pro který překladač vypíše zprávu „Gene
 not conform to the schema“ a skončí s návratovým kódem 2, **kontaktujte cvičícího**.
 Znamená to, že je v překladači chyba, která není na vaší straně. :)
 
+### Linting, typové kontroly
+
+Tento nástroj záměrně **neodpovídá** lintovacím a formátovacím pravidlům z šablon pro pythonové projekty. Nemá tedy smysl nad ním pouštět mypy nebo Ruff. (Samozřejmě vám nebráníme jej dostat do „slušnější“ podoby, ale není to součástí zadání.)

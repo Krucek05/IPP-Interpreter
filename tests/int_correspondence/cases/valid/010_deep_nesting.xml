@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<program language="SOL26">
+  <class name="Deep" parent="Object">
+    <method selector="run">
+      <block arity="0">
+        <assign order="1">
+          <var name="v"/>
+          <expr>
+            <send selector="outer:">
+              <expr>
+                <var name="self"/>
+              </expr>
+              <arg order="1">
+                <expr>
+                  <send selector="inner:">
+                    <expr>
+                      <block arity="1">
+                        <parameter name="x" order="1"/>
+                        <assign order="1">
+                          <var name="y"/>
+                          <expr>
+                            <var name="x"/>
+                          </expr>
+                        </assign>
+                      </block>
+                    </expr>
+                    <arg order="1">
+                      <expr>
+                        <literal class="Nil" value="nil"/>
+                      </expr>
+                    </arg>
+                  </send>
+                </expr>
+              </arg>
+            </send>
+          </expr>
+        </assign>
+      </block>
+    </method>
+  </class>
+</program>

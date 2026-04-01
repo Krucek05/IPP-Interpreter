@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<program language="SOL26">
+  <class name="Chain" parent="Object">
+    <method selector="run">
+      <block arity="0">
+        <assign order="1">
+          <var name="out"/>
+          <expr>
+            <send selector="done">
+              <expr>
+                <send selector="next">
+                  <expr>
+                    <var name="self"/>
+                  </expr>
+                </send>
+              </expr>
+              <arg order="1">
+                <expr>
+                  <literal class="String" value="ok"/>
+                </expr>
+              </arg>
+            </send>
+          </expr>
+        </assign>
+      </block>
+    </method>
+  </class>
+</program>
