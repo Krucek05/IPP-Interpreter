@@ -15,10 +15,14 @@ class IntegerObject(SolObject):
     Represents a SOL Integer object.
     """
 
-    value: int
+    value: int = 0
 
     def __init__(self, value: int):
         super().__init__("Integer", value)
+
+    def sol_new(self) -> IntegerObject:
+        """Creates new integer instance"""
+        return IntegerObject(0)
 
     def equal_to(self, other: SolObject) -> bool:
         """Evaluates if data of two objects are same"""
@@ -61,4 +65,20 @@ class IntegerObject(SolObject):
 
     def times_repeated(self, block: SolObject) -> SolObject:
         """Executes block number of times — block execution handled by interpreter"""
-        return SolObject("Nil", None)
+        from interpreter.block_object import BlockObject
+        from interpreter.nil_object import nil
+
+        if not isinstance(block, BlockObject):
+            raise InterpreterError(
+                error_code=ErrorCode.INT_DNU,
+                message="timesRepeat: expects block with value: message",
+            )
+
+        if self.value <= 0:
+            return nil
+
+        last_result = nil
+        for _ in range(1, self.value + 1):
+            last_result = nil
+
+        return last_result

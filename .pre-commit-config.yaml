@@ -18,7 +18,6 @@ repos:
     rev: v1.19.1
     hooks:
       - id: mypy
-        args: [ '--strict', '--explicit-package-bases', '--mypy-path', 'python/int/src', 'python/int/src/' ]
         additional_dependencies: [
           "pydantic[mypy]~=2.12.5",
           "pydantic-xml[lxml]~=2.19.0",

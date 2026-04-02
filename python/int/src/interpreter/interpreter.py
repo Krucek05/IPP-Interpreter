@@ -15,13 +15,12 @@ from lxml import etree
 from lxml.etree import ParseError
 from pydantic import ValidationError
 
-from interpreter.block_object import BlockObject
-from interpreter.boolean_object import FALSE, TRUE
+from interpreter.boolean_object import false, true
 from interpreter.error_codes import ErrorCode
 from interpreter.exceptions import InterpreterError
-from interpreter.input_model import Expr, Program, Send
+from interpreter.input_model import Program
 from interpreter.integer_object import IntegerObject
-from interpreter.nil_object import NilObject
+from interpreter.nil_object import nil
 from interpreter.object import SolObject
 from interpreter.string_object import StringObject
 
@@ -36,15 +35,16 @@ class Interpreter:
     def __init__(self) -> None:
         self.current_program: Program | None = None
         self.variables: dict[str, SolObject] = {}
+        self.xml_tree: etree._ElementTree | None = None
+        self.root: etree._Element | None = None
 
     def check_main(self) -> None:
-        """Checks if class Main exists and has a run method"""
-        assert self.current_program is not None
+        """Checks if class Main exists and if there is selector run"""
+        assert self.root is not None
 
-        main_class = next((c for c in self.current_program.classes if c.name == "Main"), None)
-        if main_class is None:
+        if not self.root.xpath('//class[@name="Main"]'):
             raise InterpreterError(ErrorCode.SEM_MAIN, "Missing Main class")
-        if not any(m.selector == "run" for m in main_class.methods):
+        if not self.root.xpath('//class[@name="Main"]/method[@selector="run"]'):
             raise InterpreterError(ErrorCode.SEM_MAIN, "Main missing run method")
 
     def load_program(self, source_file_path: Path) -> None:
@@ -59,6 +59,8 @@ class Interpreter:
         logger.info("Opening source file: %s", source_file_path)
         try:
             xml_tree = etree.parse(source_file_path)
+            self.xml_tree = xml_tree
+            self.root = self.xml_tree.getroot()
         except ParseError as e:
             raise InterpreterError(
                 error_code=ErrorCode.INT_XML, message="Error parsing input XML"
@@ -72,90 +74,88 @@ class Interpreter:
 
         self.check_main()
 
-    def evaluate_expr(self, expr: Expr) -> SolObject:
-        """Evaluates a Expr into a SolObject"""
-        if expr.literal is not None:
-            lit = expr.literal
-            if lit.class_id == "Integer":
-                return IntegerObject(int(lit.value))
-            if lit.class_id == "String":
-                return StringObject(lit.value)
-            if lit.class_id == "Nil":
-                return NIL
-            if lit.class_id == "True":
-                return TRUE
-            if lit.class_id == "False":
-                return FALSE
-            # class literal — e.g. <literal class="class" value="Integer"/>
-            return SolObject("class", lit.value)
+    def evaluate_node(self, node: etree._Element) -> SolObject:
+        """Evaulating what contains current node"""
+        if node.tag == "expr":
+            return self.evaluate_node(node[0])  # find child
 
-        if expr.block is not None:
-            return BlockObject(expr.block)
+        if node.tag == "literal":
+            node_class = node.get("class")
+            node_value = node.get("value")
+            if node_class is None:
+                return nil
+            if node_class == "Integer":
+                assert node_value is not None
+                return IntegerObject(int(node_value))
+            if node_class == "String":
+                assert node_value is not None
+                return StringObject(node_value)
+            return SolObject(node_class, node_value)
 
-        if expr.var is not None:
-            var_name = expr.var.name
-            if var_name in self.variables:
-                return self.variables[var_name]
-            return NilObject()
+        if node.tag == "send":
+            return self.dispatching(node)
 
-        if expr.send is not None:
-            return self.dispatch(expr.send)
+        if node.tag == "var":
+            var_name = node.get("name")
+            if var_name is None:
+                return nil
+            return self.variables.get(var_name, nil)
 
-        return NilObject()
+        return nil
 
-    def dispatch(self, send: Send) -> SolObject:
-        """Dispatches a message send to the appropriate handler"""
-        receiver = self.evaluate_expr(send.receiver)
-        selector = send.selector
+    def dispatching(self, sender: etree._Element) -> SolObject:
+        """Finds proper selector, calls evaluations of expression and executed choosen funcion"""
+        selector = sender.get("selector")
 
-        if receiver.class_name == "class":
-            if selector == "new":
-                return receiver.sol_new()
-            if selector == "from:":
-                obj = self.evaluate_expr(send.args[0].expr)
-                return receiver.sol_from(obj)
-
-        # if receiver.class_name == "Block" and selector == "whileTrue:":
-        #     block = self.evaluate_expr(send.args[0].expr)
-        #     return receiver.while_true(block)
+        output_node = sender.find("expr")
+        assert output_node is not None
+        output = self.evaluate_node(output_node)
 
         if selector == "print":
-            if not isinstance(receiver, StringObject):
+            if not isinstance(output, StringObject):
                 raise InterpreterError(ErrorCode.SEM_ARITY, "print can only be called on String")
-            return receiver.sol_print()
+            return output.sol_print()
 
         if selector == "asString":
-            return receiver.as_string()
+            return output.as_string()
 
         if selector == "asInteger":
-            return receiver.as_integer()
+            return output.as_integer()
 
         if selector == "identicalTo":
-            first_arg = send.args[0].expr
-            other = self.evaluate_expr(first_arg)
-            return SolObject("Boolean", receiver.identical_to(other))
+            arg_node = sender.find('arg[@order="1"]/expr')
+            assert arg_node is not None
+            other = self.evaluate_node(arg_node)
+            return true if output.identical_to(other) else false
 
         if selector == "equalTo":
-            first_arg = send.args[0].expr
-            other = self.evaluate_expr(first_arg)
-            return SolObject("Boolean", receiver.equal_to(other))
+            arg_node = sender.find('arg[@order="1"]/expr')
+            assert arg_node is not None
+            other = self.evaluate_node(arg_node)
+            return true if output.equal_to(other) else false
 
-        return receiver
+        return output
 
     def execute(self, input_io: TextIO) -> None:
         """
         Executes the currently loaded program, using the provided input stream as standard input.
         """
         logger.info("Executing program")
-        assert self.current_program is not None
 
-        main_class = next(c for c in self.current_program.classes if c.name == "Main")
-        run_method = next(m for m in main_class.methods if m.selector == "run")
+        assert self.root is not None
 
-        for assign in run_method.block.assigns:
-            value = self.evaluate_expr(assign.expr)
-            if assign.target.name != "_":
-                self.variables[assign.target.name] = value
+        run_block = self.root.find('.//class[@name="Main"]/method[@selector="run"]/block')
+        assert run_block is not None
 
-        # print(self.current_program)
-        logger.info("Program execution finished")
+        for assign in sorted(run_block.findall("assign"), key=lambda x: int(x.get("order", 0))):
+            expr_node = assign.find("expr")
+            assert expr_node is not None
+            value = self.evaluate_node(expr_node)
+
+            var_elem = assign.find("var")
+            assert var_elem is not None
+            var_name = var_elem.get("name")
+            assert var_name is not None
+
+            if var_name != "_":
+                self.variables[var_name] = value

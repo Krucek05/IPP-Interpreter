@@ -13,10 +13,14 @@ class StringObject(SolObject):
     Represents a SOL String object.
     """
 
-    value: str
+    value: str  # Store the actual string value
 
     def __init__(self, value: str):
         super().__init__("String", value)
+
+    def sol_new(self) -> StringObject:
+        """Creates new empty string instance"""
+        return StringObject("")
 
     @staticmethod
     def read() -> StringObject:
@@ -43,7 +47,9 @@ class StringObject(SolObject):
         try:
             return IntegerObject(int(self.value))
         except ValueError:
-            return SolObject("Nil", None)
+            from interpreter.nil_object import nil
+
+            return nil
 
     def concatenate_with(self, other: SolObject) -> StringObject | SolObject:
         """Concatenates two strings together and returns the result"""
@@ -55,12 +61,16 @@ class StringObject(SolObject):
         """Evaluates if string starts with start and ends with end"""
 
         if not isinstance(start, int) or not isinstance(end, int) or start <= 0 or end <= 0:
-            return SolObject("Nil", None)
+            from interpreter.nil_object import nil
+
+            return nil
         if end - start <= 0:
             return StringObject("")
 
         return StringObject(self.value[start - 1 : end - 1])
 
-    def length(self) -> int:
+    def length(self) -> SolObject:
         """Returns length of string"""
-        return len(self.value)
+        from interpreter.integer_object import IntegerObject
+
+        return IntegerObject(len(self.value))
