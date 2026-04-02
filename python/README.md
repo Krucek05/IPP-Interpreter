@@ -6,9 +6,9 @@ V obou šablonách jsou pomocí souboru `pyproject.toml` nakonfigurovány nástr
 máte využít pro kontrolu kvality kódu a pro kontrolu typových anotací. Do této konfigurace je
 **zakázáno zasahovat** (bude kontrolováno).
 
-Jakmile jsou nástroje nainstalovány ve vašem pythonovém prostředí, lze je spustit z kořenového 
+Jakmile jsou nástroje nainstalovány ve vašem pythonovém prostředí, lze je spustit z kořenového
 adresáře projektu pomocí `ruff` a `mypy` (viz níže). Doporučujeme oba nástroje spouštět **pravidelně**
-v průběhu vývoje – jinak se chyby zvládnou velice rychle nahromadit. Pro různá IDE či editory kódu 
+v průběhu vývoje – jinak se chyby zvládnou velice rychle nahromadit. Pro různá IDE či editory kódu
 také existují rozšíření, která umí Ruff integrovat přímo do svých kontrol kódu (např. pro JetBrains
 PyCharm doporučuji rozšíření [RyeCharm](https://plugins.jetbrains.com/plugin/25230-ryecharm)).
 
@@ -27,20 +27,20 @@ o potvrzení na cvičicí (na fóru).
 V projektu s testovacím nástrojem je možné ignorovat pravidla [S602 až S607](https://docs.astral.sh/ruff/rules/#flake8-bandit-s).
 Je však vhodné, abyste pochopili jejich význam.
 
-Pokud vám některá pravidla budou připadat příliš restriktivní, obraťte se na nás na fóru. V případě 
-dobré argumentace se zde pak mohou objevit další povolené výjimky. Nástroje pro kontrolu kvality kódu 
+Pokud vám některá pravidla budou připadat příliš restriktivní, obraťte se na nás na fóru. V případě
+dobré argumentace se zde pak mohou objevit další povolené výjimky. Nástroje pro kontrolu kvality kódu
 nemusí mít vždycky pravdu.
 
 ## Správa projektu a závislostí
 
 V obou šablonách jsou povinně využity knihovny třetích stran ([Pydantic](https://docs.pydantic.dev/latest/),
-v případě interpretu taky [pydantic-xml](https://pydantic-xml.readthedocs.io/en/latest/)). 
+v případě interpretu taky [pydantic-xml](https://pydantic-xml.readthedocs.io/en/latest/)).
 Požadované nástroje Ruff a mypy se také instalují jako pythonové balíčky. Z tohoto důvodu budete
 muset zvolit nějaký způsob správy pythonového prostředí, které budou k dispozici i při běhu
 (v kontejneru). V tomto směru doporučujeme zvolit jednu z možností:
 - klasická systémová instalace Pythonu a správce balíčků **pip**, přičemž využijete tzv.
   **virtuální prostředí** (venv) – viz [dokumentaci](https://docs.python.org/3/library/venv.html);
-- správce projektu [**uv**](https://docs.astral.sh/uv/), který poskytuje kompletní správu projektu 
+- správce projektu [**uv**](https://docs.astral.sh/uv/), který poskytuje kompletní správu projektu
   i závislostí.
 
 V obou šablonách jsou předpřipraveny soubory `requirements.txt` (závislosti nutné při běhu)
@@ -57,7 +57,7 @@ source .venv/bin/activate
 # nainstaluje balíčky
 pip install -r requirements.txt -r requirements-dev.txt
 # ruff a mypy
-ruff check
+l
 ruff format
 mypy .
 # spustí skript
@@ -77,10 +77,10 @@ uv run python src/tester.py
 
 ## Spuštění v kontejneru
 
-Je na vás, jak zajistíte, že se vaše programy budou spouštět v prostředí, které má nainstalované 
+Je na vás, jak zajistíte, že se vaše programy budou spouštět v prostředí, které má nainstalované
 všechny potřebné závislosti – záleží, jaký způsob správy projektu zvolíte.
 
-Uživatel bude testovací nástroj spouštět pouze v kontejneru, který bude vytvořen na 
+Uživatel bude testovací nástroj spouštět pouze v kontejneru, který bude vytvořen na
 základě vašeho Containerfile (Dockerfile). Při použití virtuálních prostředí (venv) je jedním
 z možných postupů, že využijete shellový skript, který si aktivuje prostředí a předá argumenty.
 Váš Containerfile by tedy obsahoval např. direktivu:

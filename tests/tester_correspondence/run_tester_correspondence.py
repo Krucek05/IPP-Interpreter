@@ -86,7 +86,9 @@ def run_case_command(spec: CommandSpec) -> dict[str, Any]:
         ) from exc
 
 
-def make_diff(left_name: str, left_obj: dict[str, Any], right_name: str, right_obj: dict[str, Any]) -> str:
+def make_diff(
+    left_name: str, left_obj: dict[str, Any], right_name: str, right_obj: dict[str, Any]
+) -> str:
     left_json = json.dumps(left_obj, indent=2, sort_keys=True)
     right_json = json.dumps(right_obj, indent=2, sort_keys=True)
 
@@ -102,9 +104,7 @@ def make_diff(left_name: str, left_obj: dict[str, Any], right_name: str, right_o
 
 def collect_cases(selected_cases: list[str]) -> list[Path]:
     available = {
-        case.name: case
-        for case in sorted(CASE_DIR.iterdir())
-        if case.is_dir()
+        case.name: case for case in sorted(CASE_DIR.iterdir()) if case.is_dir()
     }
 
     if not available:

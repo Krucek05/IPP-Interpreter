@@ -41,7 +41,11 @@ def command_specs_for_case(case_path: Path) -> list[CommandSpec]:
     return [
         CommandSpec(
             language="python",
-            command=[resolve_python_executable(), str(ADAPTER_DIR / "python_dump.py"), str(case_path)],
+            command=[
+                resolve_python_executable(),
+                str(ADAPTER_DIR / "python_dump.py"),
+                str(case_path),
+            ],
         ),
         CommandSpec(
             language="php",
@@ -71,7 +75,9 @@ def run_loader(spec: CommandSpec) -> dict[str, Any]:
         ) from exc
 
 
-def make_diff(left_name: str, left_obj: dict[str, Any], right_name: str, right_obj: dict[str, Any]) -> str:
+def make_diff(
+    left_name: str, left_obj: dict[str, Any], right_name: str, right_obj: dict[str, Any]
+) -> str:
     left_json = json.dumps(left_obj, indent=2, sort_keys=True)
     right_json = json.dumps(right_obj, indent=2, sort_keys=True)
 
@@ -147,9 +153,7 @@ def main() -> int:
             current = outputs[language]
             if current != baseline:
                 diff = make_diff("python", baseline, language, current)
-                failures.append(
-                    f"{case_path.name}: python != {language}\n{diff}"
-                )
+                failures.append(f"{case_path.name}: python != {language}\n{diff}")
                 print(f"  - compare python vs {language}: DIFF")
             else:
                 print(f"  - compare python vs {language}: match")

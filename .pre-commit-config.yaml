@@ -14,11 +14,13 @@ repos:
       - id: ruff-check
         args: [ '--fix' ]
       - id: ruff-format
-  - repo: local
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.19.1
     hooks:
       - id: mypy
-        name: mypy
-        language: system
-        entry: bash -c 'cd python/int && mypy src/'
-        pass_filenames: false
-        types: [python]
+        args: [ '--strict', '--explicit-package-bases', '--mypy-path', 'python/int/src', 'python/int/src/' ]
+        additional_dependencies: [
+          "pydantic[mypy]~=2.12.5",
+          "pydantic-xml[lxml]~=2.19.0",
+          "types-lxml>=2026.2.16",
+        ]

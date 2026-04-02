@@ -1,7 +1,7 @@
 # Nástroj pro integrační testování – TypeScript
 
 > [!NOTE]
-> Platí zde všechny obecné instrukce pro řešení v jazyce TypeScript, které jsou 
+> Platí zde všechny obecné instrukce pro řešení v jazyce TypeScript, které jsou
 > uvedeny v `README.md` v nadřazeném adresáři.
 
 Při implementaci nástroje pro integrační testování máte v zásadě volnou ruku. K dispozici máte předpřipravenou kostru s načítáním parametrů z příkazové řádky, kterou můžete libovolně upravit.
@@ -15,7 +15,7 @@ Při implementaci nástroje pro integrační testování máte v zásadě volnou
 - `tsconfig.json`: konfigurační soubor pro překladač TypeScriptu.
 - `src/tester.ts`: vstupní skript, připravený kód pro parsování argumentů příkazové řádky a inicializaci
   logování. Tento skript můžete rovnou dále rozšiřovat.
-- `src/models.ts`: definice datových struktur (modelů), které reprezentují jak samotný načtený test, tak i 
+- `src/models.ts`: definice datových struktur (modelů), které reprezentují jak samotný načtený test, tak i
   výstupní report. Všechny modely jsou zde podrobně popsány.
 
 Příklad spuštění:
@@ -43,9 +43,9 @@ zajišťuje správnost výstupního formátu.)
 
 ## Spouštění v kontejneru a interakce s dalšími nástroji
 
-Není specifikován konkrétní způsob, jakým váš testovací nástroj spustí překladač SOL2XML a váš 
-interpret. Cesty k překladači a interpretu tedy v podstatě mohou být i napevno definované ve vašem 
-kódu, ačkoliv to není považováno za vhodné řešení. Doporučujeme raději použít proměnné prostředí, 
+Není specifikován konkrétní způsob, jakým váš testovací nástroj spustí překladač SOL2XML a váš
+interpret. Cesty k překladači a interpretu tedy v podstatě mohou být i napevno definované ve vašem
+kódu, ačkoliv to není považováno za vhodné řešení. Doporučujeme raději použít proměnné prostředí,
 konfigurační soubor nebo vlastní parametry příkazové řádky.
 
 Povinně podporované parametry příkazové řádky jsou popsány v zadání.

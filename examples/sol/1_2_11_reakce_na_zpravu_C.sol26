@@ -5,11 +5,11 @@ class Parent : Object {
     q := self q: 'world'.
     "Je-li příjemce instance Parent, získá hodnotu v 'p' a vytiskne 'hello'."
     "Je-li příjemce instance Main, reaguje invokací metody 'p' a vypíše 'foo'."
-    _ := (self p) print. ] 
+    _ := (self p) print. ]
 }
 
 class Main : Parent {
-  run [| 
+  run [|
     "tyto čtyři příkazy mají stejný efekt"
     a := super value: super. b := super value: self.
     c := self value: super. d := self value: self.

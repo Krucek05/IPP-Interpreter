@@ -57,15 +57,24 @@ def variants() -> list[Variant]:
     return [
         Variant(
             key="python",
-            command_prefix=[resolve_python_executable(), str(REPO_ROOT / "python" / "tester" / "src" / "tester.py")],
+            command_prefix=[
+                resolve_python_executable(),
+                str(REPO_ROOT / "python" / "tester" / "src" / "tester.py"),
+            ],
         ),
         Variant(
             key="typescript",
-            command_prefix=["node", str(REPO_ROOT / "typescript" / "tester" / "dist" / "tester.js")],
+            command_prefix=[
+                "node",
+                str(REPO_ROOT / "typescript" / "tester" / "dist" / "tester.js"),
+            ],
         ),
         Variant(
             key="php",
-            command_prefix=["php", str(REPO_ROOT / "php" / "tester" / "src" / "tester.php")],
+            command_prefix=[
+                "php",
+                str(REPO_ROOT / "php" / "tester" / "src" / "tester.php"),
+            ],
         ),
     ]
 
@@ -224,7 +233,9 @@ CASES: list[CliCase] = [
 ]
 
 
-def render_args(case: CliCase, variant: Variant, sandbox_dir: Path) -> tuple[list[str], Path]:
+def render_args(
+    case: CliCase, variant: Variant, sandbox_dir: Path
+) -> tuple[list[str], Path]:
     tests_dir = sandbox_dir / "tests"
     output_dir = sandbox_dir / "out"
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -241,7 +252,9 @@ def render_args(case: CliCase, variant: Variant, sandbox_dir: Path) -> tuple[lis
     return rendered, Path(context["output_file"])
 
 
-def run_case(variant: Variant, case: CliCase, sandbox_dir: Path) -> tuple[RunResult, Path]:
+def run_case(
+    variant: Variant, case: CliCase, sandbox_dir: Path
+) -> tuple[RunResult, Path]:
     args, output_file = render_args(case, variant, sandbox_dir)
     cmd = [*variant.command_prefix, *args]
 

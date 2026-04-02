@@ -4,7 +4,7 @@ V tomto adresáři se nachází jednoduchý pythonový skript `sol_to_xml.py`. T
 zdrojového kódu v lidsky čitelné formě jazyka SOL26 do formátu SOL-XML, který je vstupním formátem
 pro váš interpret.
 
-Nástroj lze spustit bez parametrů příkazové řádky, kdy čte kód SOL26 ze standardního vstupu, nebo 
+Nástroj lze spustit bez parametrů příkazové řádky, kdy čte kód SOL26 ze standardního vstupu, nebo
 je možné použít jediný parametr, kterým je cesta ke vstupnímu souboru s kódem SOL26. Cílové XML
 je vždy tisknuto na standardní výstup.
 
@@ -27,7 +27,7 @@ V souboru `parser_output_schema.xsd` se nachází XSD schéma, které popisují 
 tedy všechny validní SOL-XML soubory musí tomuto schématu odpovídat. Pokud je schéma
 k dispozici (v pracovním adresáři, z něhož je skript spuštěn), bude automaticky provedena
 validace výstupu. Ta by **měla vždy dopadnout dobře**. Pokud byste při experimentech
-narazili na kód v jazyce SOL26, pro který překladač vypíše zprávu „Generated XML does 
+narazili na kód v jazyce SOL26, pro který překladač vypíše zprávu „Generated XML does
 not conform to the schema“ a skončí s návratovým kódem 2, **kontaktujte cvičícího**.
 Znamená to, že je v překladači chyba, která není na vaší straně. :)
 
