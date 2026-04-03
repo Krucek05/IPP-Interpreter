@@ -28,30 +28,39 @@ class IntegerObject(SolObject):
         """Evaluates if data of two objects are same"""
         return bool(self.value == other.value)
 
-    def greather_then(self, first_value: int, second_value: int) -> bool:
-        """Evaulates if first value is greather then second value"""
-        return first_value > second_value
+    def greater_than(self, other: SolObject) -> SolObject:
+        """Evaluates if this integer is greater than other"""
+        from interpreter.boolean_object import false, true
 
-    def plus(self, first_value: int, second_value: int) -> int:
+        if not isinstance(other, IntegerObject):
+            raise InterpreterError(ErrorCode.INT_DNU, "greaterThan: requires Integer")
+        return true if self.value > other.value else false
+
+    def plus(self, other: SolObject) -> SolObject:
         """Adds two integers together and returns the result"""
-        return first_value + second_value
+        if not isinstance(other, IntegerObject):
+            raise InterpreterError(ErrorCode.INT_DNU, "plus: requires Integer")
+        return IntegerObject(self.value + other.value)
 
-    def minus(self, first_value: int, second_value: int) -> int:
-        """Subtracts second integer from first and returns the result"""
-        return first_value - second_value
+    def minus(self, other: SolObject) -> SolObject:
+        """Subtracts other integer from this and returns the result"""
+        if not isinstance(other, IntegerObject):
+            raise InterpreterError(ErrorCode.INT_DNU, "minus: requires Integer")
+        return IntegerObject(self.value - other.value)
 
-    def multiply_by(self, first_value: int, second_value: int) -> int:
+    def multiply_by(self, other: SolObject) -> SolObject:
         """Multiplies two integers together and returns the result"""
-        return first_value * second_value
+        if not isinstance(other, IntegerObject):
+            raise InterpreterError(ErrorCode.INT_DNU, "multiplyBy: requires Integer")
+        return IntegerObject(self.value * other.value)
 
-    def devide_by(self, first_value: int, second_value: int) -> int:
-        """Divides first integer by second and returns the result"""
-        if not second_value:
-            raise InterpreterError(
-                error_code=ErrorCode.INT_INVALID_ARG, message="Can not devide by zero"
-            )
-
-        return first_value // second_value
+    def divide_by(self, other: SolObject) -> SolObject:
+        """Divides this integer by other and returns the result"""
+        if not isinstance(other, IntegerObject):
+            raise InterpreterError(ErrorCode.INT_DNU, "divBy: requires Integer")
+        if other.value == 0:
+            raise InterpreterError(ErrorCode.INT_INVALID_ARG, "Cannot divide by zero")
+        return IntegerObject(self.value // other.value)
 
     def as_string(self) -> SolObject:
         """Converts integer to string and returns it"""

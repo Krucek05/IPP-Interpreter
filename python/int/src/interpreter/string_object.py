@@ -57,7 +57,9 @@ class StringObject(SolObject):
             return StringObject(self.value + str(other.value))
         return SolObject("Nil", None)
 
-    def starts_with_ends_before(self, start: str, end: str) -> StringObject | SolObject:
+    def starts_with_ends_before(
+        self, start: SolObject, end: SolObject
+    ) -> StringObject | SolObject:
         """Evaluates if string starts with start and ends with end"""
 
         if not isinstance(start, int) or not isinstance(end, int) or start <= 0 or end <= 0:

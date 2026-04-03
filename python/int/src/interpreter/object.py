@@ -36,12 +36,6 @@ class SolObject:
         """Returns string representation of object"""
         return SolObject("String", "")
 
-    def as_integer(self) -> SolObject:
-        """Default: returns nil. Subclasses override."""
-        from interpreter.nil_object import nil
-
-        return nil
-
     def identical_to(self, other: SolObject) -> bool:
         """Evaluates if two objects are identical"""
         return self is other

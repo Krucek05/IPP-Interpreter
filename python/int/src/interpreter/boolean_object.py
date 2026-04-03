@@ -52,6 +52,10 @@ class BooleanObject(SolObject):
         """Evaluates if object is boolean"""
         return true
 
+    def sol_not(self) -> SolObject:
+        """Logical NOT operation"""
+        return false if self.value else true
+
 
 class TrueObject(BooleanObject):
     """Represents a true boolean object."""
@@ -59,20 +63,12 @@ class TrueObject(BooleanObject):
     def __init__(self) -> None:
         super().__init__("True", True)
 
-    def sol_not(self) -> FalseObject:
-        """Logical NOT operation"""
-        return false
-
 
 class FalseObject(BooleanObject):
     """Represents a false boolean object."""
 
     def __init__(self) -> None:
         super().__init__("False", False)
-
-    def sol_not(self) -> TrueObject:
-        """Logical NOT operation"""
-        return true
 
 
 true = TrueObject()
