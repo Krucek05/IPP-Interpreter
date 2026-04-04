@@ -20,12 +20,27 @@ class SolObject:
         """Class message 'new' — creates a fresh instance of this object's class.
         self is the class literal (class_name='class', value='ClassName').
         """
+        if self.class_name == "class":
+            class_name = str(self.value)
+            return SolObject(class_name, None)
         return self
 
     def sol_from(self, obj: SolObject) -> SolObject:
         """Class message 'from:' — creates a new instance and shallow-copies
         all instance attributes from obj into it.
         """
+
+        if self.class_name == "class":
+            class_name = str(self.value)
+            new_obj = SolObject(class_name, None)
+
+            new_obj.instance_vars = obj.instance_vars.copy()
+
+            # Todoo: Check for required internal attributes
+            # For now, assume all are provided (error 53 check goes here)
+
+            return new_obj
+
         return self
 
     def new_instance(self, class_name: str, value: object = None) -> SolObject:

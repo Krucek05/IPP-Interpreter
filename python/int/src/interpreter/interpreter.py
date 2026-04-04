@@ -102,6 +102,15 @@ class Interpreter:
                 assert node_value is not None
                 return StringObject(node_value)  # Return the class name as a string for now
 
+        if node.tag == "block":
+            # Parse XML block element back to pydantic Block model
+            from interpreter.input_model import Block
+
+            block_model = Block.from_xml_tree(node)  # type: ignore[arg-type]
+            block_obj = BlockObject(block_model)
+            block_obj.interpreter = self
+            return block_obj
+
         if node.tag == "send":
             return self.dispatching(node)
 
@@ -120,6 +129,21 @@ class Interpreter:
         output_node = sender.find("expr")
         assert output_node is not None
         output = self.evaluate_node(output_node)
+
+        # Handle block value selectors (value, value:, value:value:, etc.)
+        if selector is not None and selector.startswith("value"):
+            if isinstance(output, BlockObject):
+                arity = selector.count(":")
+                args: list[SolObject] = []
+                for i in range(1, arity + 1):
+                    arg_node = sender.find(f'arg[@order="{i}"]/expr')
+                    if arg_node is not None:
+                        args.append(self.evaluate_node(arg_node))
+
+                output.interpreter = self
+
+                return output.sol_value(*args)
+            raise InterpreterError(ErrorCode.INT_DNU, f"{selector} only for Block")
 
         handlers: dict[str, Callable[[SolObject, etree._Element], SolObject]] = {
             "print": self._handle_print,
@@ -145,6 +169,8 @@ class Interpreter:
             "and": self._handle_and,
             "or": self._handle_or,
             "ifTrue:ifFalse": self._handle_if_true_if_false,
+            "new": lambda o, _: o.sol_new(),
+            "from:": self._handle_from,
         }
 
         if selector in handlers:
@@ -242,7 +268,7 @@ class Interpreter:
         if output.value > 0:
             for i in range(1, output.value + 1):
                 iteration = IntegerObject(i)
-                result = block.sol_value_with_arg(iteration)
+                result = block.sol_value(iteration)
 
         return result
 
@@ -342,6 +368,30 @@ class Interpreter:
             raise InterpreterError(ErrorCode.INT_DNU, "ifTrue:ifFalse: requires a block")
 
         return output.if_true_if_false(true_block, false_block)
+
+    def _handle_from(self, output: SolObject, sender: etree._Element) -> SolObject:
+        """Handler for from: selector (constructor)"""
+        arg_node = sender.find('arg[@order="1"]/expr')
+        assert arg_node is not None
+        obj = self.evaluate_node(arg_node)
+        return output.sol_from(obj)
+
+    def _handle_block_value(self, output: SolObject, sender: etree._Element) -> SolObject:
+        """Handler for value/value:/value:value: etc. - block execution with variable arity"""
+        if not isinstance(output, BlockObject):
+            raise InterpreterError(ErrorCode.INT_DNU, "value selector only for Block")
+
+        # Extract arguments based on actual arity in the block
+        args: list[SolObject] = []
+        for i in range(1, output.block.arity + 1):
+            arg_node = sender.find(f'arg[@order="{i}"]/expr')
+            if arg_node is not None:
+                args.append(self.evaluate_node(arg_node))
+
+        output.interpreter = self
+
+        # Call sol_value with collected arguments
+        return output.sol_value(*args)
 
     def execute(self, input_io: TextIO) -> None:
         """
