@@ -167,8 +167,8 @@ class Interpreter:
             "print": self._handle_print,
             "asString": self._handle_as_string,
             "asInteger": self._handle_as_integer,
-            "identicalTo": self._handle_identical_to,
-            "equalTo": self._handle_equal_to,
+            "identicalTo:": self._handle_identical_to,
+            "equalTo:": self._handle_equal_to,
             "isNumber": lambda o, _: o.is_number(),
             "isBlock": lambda o, _: o.is_block(),
             "isNil": lambda o, _: o.is_nil(),
@@ -180,13 +180,13 @@ class Interpreter:
             "divBy:": self._handle_div_by,
             "timesRepeat:": self._handle_times_repeat,
             "read": lambda o, _: StringObject.read(),
-            "concatenateWith": self._handle_concat_with,
+            "concatenateWith:": self._handle_concat_with,
             "startsWith:endsBefore:": self._handle_starts_with_ends_before,
             "whileTrue:": self._handle_while_true,
             "not": self._handle_not,
-            "and": self._handle_and,
-            "or": self._handle_or,
-            "ifTrue:ifFalse": self._handle_if_true_if_false,
+            "and:": self._handle_and,
+            "or:": self._handle_or,
+            "ifTrue:ifFalse:": self._handle_if_true_if_false,
             "new": self._handle_new,
             "from:": self._handle_from,
             "self": self._handle_self,
@@ -403,7 +403,16 @@ class Interpreter:
 
     def _handle_new(self, output: SolObject, sender: etree._Element) -> SolObject:
         """Handler for new selector - creates instance of receiver's class"""
-        return SolObject(output.class_name, None)
+        # Special case for built-in classes that need special instantiation
+        if output.class_name == "Block":
+            from interpreter.input_model import Block
+
+            empty_block = Block(arity=0, parameters=[], assigns=[])
+            block_obj = BlockObject(empty_block)
+            block_obj.interpreter = self
+            return block_obj
+
+        return output.sol_new()
 
     def _handle_block_value(self, output: SolObject, sender: etree._Element) -> SolObject:
         """Handler for value/value:/value:value: etc. - block execution with variable arity"""
@@ -427,6 +436,27 @@ class Interpreter:
 
     def _handle_super(self, output: SolObject, sender: etree._Element) -> SolObject:
         """Handler for super selector"""
+        selector = sender.get("selector")
+        if not selector:
+            return output
+
+        class_def = self.classes.get(output.class_name)
+        if not class_def or not class_def.parent or class_def.parent == "Object":
+            return output
+
+        # Look up method in parent class
+        method = self.find_method(class_def.parent, selector)
+        if method:
+            args: list[SolObject] = []
+            i = 1
+            while True:
+                arg_node = sender.find(f'arg[@order="{i}"]/expr')
+                if arg_node is None:
+                    break
+                args.append(self.evaluate_node(arg_node))
+                i += 1
+            return self._execute_method(output, method, args)
+
         return output
 
     def find_method(self, class_name: str, selector: str) -> Method | None:
@@ -464,10 +494,11 @@ class Interpreter:
         self, receiver: SolObject, method: Method, args: list[SolObject]
     ) -> SolObject:
         """Execute a user-defined method"""
-        # Save current variable state
         saved_vars = self.variables.copy()
 
         try:
+            self.variables["self"] = receiver
+
             for i, param in enumerate(method.block.parameters):
                 if i < len(args):
                     self.variables[param.name] = args[i]

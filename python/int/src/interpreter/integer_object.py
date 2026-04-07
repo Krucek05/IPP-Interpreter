@@ -88,6 +88,6 @@ class IntegerObject(SolObject):
 
         last_result = nil
         for _ in range(1, self.value + 1):
-            last_result = nil
+            last_result = block.sol_value()  # type: ignore[assignment]
 
         return last_result

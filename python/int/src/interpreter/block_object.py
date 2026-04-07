@@ -33,6 +33,12 @@ class BlockObject(SolObject):
         empty_block = Block(arity=0, parameters=[], assigns=[])
         return BlockObject(empty_block)
 
+    def is_block(self) -> SolObject:
+        """Evaluates if object is block"""
+        from interpreter.boolean_object import true
+
+        return true
+
     def sol_value(self, *args: SolObject) -> SolObject:
         """Execute block with variable number of parameters"""
 

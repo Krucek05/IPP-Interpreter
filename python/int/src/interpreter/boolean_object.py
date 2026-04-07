@@ -23,17 +23,25 @@ class BooleanObject(SolObject):
 
     def sol_and(self, other: SolObject) -> SolObject:
         """Logical AND operation"""
-        if not isinstance(other, BooleanObject):
+        if not isinstance(other, BlockObject):
             raise InterpreterError(ErrorCode.INT_DNU)
 
-        return true if self.value and other.value else false
+        # if left is false, don't execute right block
+        if not self.value:
+            return false
+
+        return other.sol_value()
 
     def sol_or(self, other: SolObject) -> SolObject:
-        """Logical OR operation"""
-        if not isinstance(other, BooleanObject):
+        """Logical OR operation with short-circuit evaluation"""
+        if not isinstance(other, BlockObject):
             raise InterpreterError(ErrorCode.INT_DNU)
 
-        return true if self.value or other.value else false
+        # if left is true, don't execute right block
+        if self.value:
+            return true
+
+        return other.sol_value()
 
     def if_true_if_false(self, true_block: SolObject, false_block: SolObject) -> SolObject:
         """Executes true_block if condition is true — block execution handled by interpreter"""
