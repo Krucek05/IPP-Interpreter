@@ -45,6 +45,12 @@ class NilObject(SolObject):
 
         return StringObject("nil")
 
+    def is_nil(self) -> SolObject:
+        """Returns true — nil is nil"""
+        from interpreter.boolean_object import true
+
+        return true
+
 
 # Global singleton instance
 nil = NilObject()

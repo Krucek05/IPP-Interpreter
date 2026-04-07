@@ -15,8 +15,19 @@ class StringObject(SolObject):
 
     value: str  # Store the actual string value
 
+    @staticmethod
+    def _unescape_string(s: str) -> str:
+        """
+        Process escape sequences in string literals.
+        """
+        result = s.replace("\\\\", "\x00")  # Temporarily replace \\ with null char
+        result = result.replace("\\n", "\n")  # \n → newline
+        result = result.replace("\\'", "'")  # \' → apostrophe
+        return result.replace("\x00", "\\")  # null char → backslash
+
     def __init__(self, value: str):
-        super().__init__("String", value)
+        unescaped = self._unescape_string(value)
+        super().__init__("String", unescaped)
 
     def sol_new(self) -> StringObject:
         """Creates new empty string instance"""
@@ -29,7 +40,7 @@ class StringObject(SolObject):
 
     def sol_print(self) -> SolObject:
         """Prints string value to stdout"""
-        print(self.value)
+        print(self.value, end="")
         return self
 
     def equal_to(self, other: SolObject) -> bool:

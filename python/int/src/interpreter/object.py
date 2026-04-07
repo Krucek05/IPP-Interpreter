@@ -49,7 +49,9 @@ class SolObject:
 
     def as_string(self) -> SolObject:
         """Returns string representation of object"""
-        return SolObject("String", "")
+        from interpreter.string_object import StringObject
+
+        return StringObject("")
 
     def identical_to(self, other: SolObject) -> bool:
         """Evaluates if two objects are identical"""

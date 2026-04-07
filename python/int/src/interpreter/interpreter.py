@@ -8,7 +8,6 @@ Author: Kristian Rucek xrucekk00
 """
 
 import logging
-from collections.abc import Callable
 from pathlib import Path
 from typing import TextIO
 
@@ -20,7 +19,7 @@ from interpreter.block_object import BlockObject
 from interpreter.boolean_object import BooleanObject, false, true
 from interpreter.error_codes import ErrorCode
 from interpreter.exceptions import InterpreterError
-from interpreter.input_model import Program
+from interpreter.input_model import ClassDef, Method, Program
 from interpreter.integer_object import IntegerObject
 from interpreter.nil_object import nil
 from interpreter.object import SolObject
@@ -37,6 +36,7 @@ class Interpreter:
     def __init__(self) -> None:
         self.current_program: Program | None = None
         self.variables: dict[str, SolObject] = {}
+        self.classes: dict[str, ClassDef] = {}
         self.xml_tree: etree._ElementTree | None = None
         self.root: etree._Element | None = None
 
@@ -74,6 +74,10 @@ class Interpreter:
                 error_code=ErrorCode.INT_STRUCTURE, message="Invalid SOL-XML structure"
             ) from e
 
+        if self.current_program:
+            for class_def in self.current_program.classes:
+                self.classes[class_def.name] = class_def
+
         self.check_main()
 
     def evaluate_node(self, node: etree._Element) -> SolObject:
@@ -100,7 +104,7 @@ class Interpreter:
                 return false
             if node_class == "class":
                 assert node_value is not None
-                return StringObject(node_value)  # Return the class name as a string for now
+                return SolObject(node_value, None)
 
         if node.tag == "block":
             # Parse XML block element back to pydantic Block model
@@ -134,18 +138,32 @@ class Interpreter:
         if selector is not None and selector.startswith("value"):
             if isinstance(output, BlockObject):
                 arity = selector.count(":")
-                args: list[SolObject] = []
+                block_args: list[SolObject] = []
                 for i in range(1, arity + 1):
                     arg_node = sender.find(f'arg[@order="{i}"]/expr')
                     if arg_node is not None:
-                        args.append(self.evaluate_node(arg_node))
+                        block_args.append(self.evaluate_node(arg_node))
 
                 output.interpreter = self
 
-                return output.sol_value(*args)
-            raise InterpreterError(ErrorCode.INT_DNU, f"{selector} only for Block")
+                return output.sol_value(*block_args)
+            raise InterpreterError(ErrorCode.SEM_ARITY, f"{selector} only for Block")
 
-        handlers: dict[str, Callable[[SolObject, etree._Element], SolObject]] = {
+        if selector:
+            method = self.find_method(output.class_name, selector)
+            if method:
+                args: list[SolObject] = []
+                i = 1
+                while True:
+                    arg_node = sender.find(f'arg[@order="{i}"]/expr')
+                    if arg_node is None:
+                        break
+                    args.append(self.evaluate_node(arg_node))
+                    i += 1
+
+                return self.send_message(output, selector, args)
+
+        handlers = {
             "print": self._handle_print,
             "asString": self._handle_as_string,
             "asInteger": self._handle_as_integer,
@@ -169,12 +187,14 @@ class Interpreter:
             "and": self._handle_and,
             "or": self._handle_or,
             "ifTrue:ifFalse": self._handle_if_true_if_false,
-            "new": lambda o, _: o.sol_new(),
+            "new": self._handle_new,
             "from:": self._handle_from,
+            "self": self._handle_self,
+            "super": self._handle_super,
         }
 
         if selector in handlers:
-            return handlers[selector](output, sender)
+            return handlers[selector](output, sender)  # type: ignore[no-any-return]
 
         return output
 
@@ -190,9 +210,14 @@ class Interpreter:
 
     def _handle_as_integer(self, output: SolObject, sender: etree._Element) -> SolObject:
         """Handler for asInteger selector"""
-        if not isinstance(output, IntegerObject):
-            raise InterpreterError(ErrorCode.INT_DNU, "asInteger: only for Integer")
-        return output
+        if isinstance(output, IntegerObject):
+            return output
+        if isinstance(output, StringObject):
+            try:
+                return IntegerObject(int(output.value))
+            except ValueError as err:
+                raise InterpreterError(ErrorCode.INT_OTHER, "Cannot convert to integer") from err
+        raise InterpreterError(ErrorCode.SEM_ARITY, "asInteger: only for Integer or String")
 
     def _handle_identical_to(self, output: SolObject, sender: etree._Element) -> SolObject:
         """Handler for identicalTo selector"""
@@ -211,7 +236,7 @@ class Interpreter:
     def _handle_greater_than(self, output: SolObject, sender: etree._Element) -> SolObject:
         """Handler for greaterThan: selector"""
         if not isinstance(output, IntegerObject):
-            raise InterpreterError(ErrorCode.INT_DNU, "greaterThan: only for Integer")
+            raise InterpreterError(ErrorCode.SEM_ARITY, "greaterThan: only for Integer")
         arg_node = sender.find('arg[@order="1"]/expr')
         assert arg_node is not None
         other = self.evaluate_node(arg_node)
@@ -220,7 +245,7 @@ class Interpreter:
     def _handle_plus(self, output: SolObject, sender: etree._Element) -> SolObject:
         """Handler for plus: selector"""
         if not isinstance(output, IntegerObject):
-            raise InterpreterError(ErrorCode.INT_DNU, "plus: only for Integer")
+            raise InterpreterError(ErrorCode.SEM_ARITY, "plus: only for Integer")
         arg_node = sender.find('arg[@order="1"]/expr')
         assert arg_node is not None
         other = self.evaluate_node(arg_node)
@@ -229,7 +254,7 @@ class Interpreter:
     def _handle_minus(self, output: SolObject, sender: etree._Element) -> SolObject:
         """Handler for minus: selector"""
         if not isinstance(output, IntegerObject):
-            raise InterpreterError(ErrorCode.INT_DNU, "minus: only for Integer")
+            raise InterpreterError(ErrorCode.SEM_ARITY, "minus: only for Integer")
         arg_node = sender.find('arg[@order="1"]/expr')
         assert arg_node is not None
         other = self.evaluate_node(arg_node)
@@ -238,7 +263,7 @@ class Interpreter:
     def _handle_multiply_by(self, output: SolObject, sender: etree._Element) -> SolObject:
         """Handler for multiplyBy: selector"""
         if not isinstance(output, IntegerObject):
-            raise InterpreterError(ErrorCode.INT_DNU, "multiplyBy: only for Integer")
+            raise InterpreterError(ErrorCode.SEM_ARITY, "multiplyBy: only for Integer")
         arg_node = sender.find('arg[@order="1"]/expr')
         assert arg_node is not None
         other = self.evaluate_node(arg_node)
@@ -247,7 +272,7 @@ class Interpreter:
     def _handle_div_by(self, output: SolObject, sender: etree._Element) -> SolObject:
         """Handler for divBy: selector"""
         if not isinstance(output, IntegerObject):
-            raise InterpreterError(ErrorCode.INT_DNU, "divBy: only for Integer")
+            raise InterpreterError(ErrorCode.SEM_ARITY, "divBy: only for Integer")
         arg_node = sender.find('arg[@order="1"]/expr')
         assert arg_node is not None
         other = self.evaluate_node(arg_node)
@@ -256,13 +281,13 @@ class Interpreter:
     def _handle_times_repeat(self, output: SolObject, sender: etree._Element) -> SolObject:
         """Handler for timesRepeat: selector"""
         if not isinstance(output, IntegerObject):
-            raise InterpreterError(ErrorCode.INT_DNU, "timesRepeat: only for Integer")
+            raise InterpreterError(ErrorCode.SEM_ARITY, "timesRepeat: only for Integer")
         arg_node = sender.find('arg[@order="1"]/expr')
         assert arg_node is not None
         block = self.evaluate_node(arg_node)
 
         if not isinstance(block, BlockObject):
-            raise InterpreterError(ErrorCode.INT_DNU, "timesRepeat: requires a block")
+            raise InterpreterError(ErrorCode.SEM_ARITY, "timesRepeat: requires a block")
 
         result: SolObject = nil
         if output.value > 0:
@@ -275,7 +300,7 @@ class Interpreter:
     def _handle_concat_with(self, output: SolObject, sender: etree._Element) -> SolObject:
         """Handler for concatenateWith selector"""
         if not isinstance(output, StringObject):
-            raise InterpreterError(ErrorCode.INT_DNU, "concatenateWith not called with String")
+            raise InterpreterError(ErrorCode.SEM_ARITY, "concatenateWith not called with String")
         arg_node = sender.find('arg[@order="1"]/expr')
         assert arg_node is not None
         other = self.evaluate_node(arg_node)
@@ -287,7 +312,7 @@ class Interpreter:
         """Handler for startsWith:endsBefore: selector"""
         if not isinstance(output, StringObject):
             raise InterpreterError(
-                ErrorCode.INT_DNU, "startsWith:endsBefore: not called with String"
+                ErrorCode.SEM_ARITY, "startsWith:endsBefore: not called with String"
             )
         arg_node1 = sender.find('arg[@order="1"]/expr')
         assert arg_node1 is not None
@@ -304,45 +329,45 @@ class Interpreter:
     def _handle_while_true(self, output: SolObject, sender: etree._Element) -> SolObject:
         """Handler for whileTrue: selector"""
         if not isinstance(output, BlockObject):
-            raise InterpreterError(ErrorCode.INT_DNU, "whileTrue: not called with Block")
+            raise InterpreterError(ErrorCode.SEM_ARITY, "whileTrue: not called with Block")
         arg_node = sender.find('arg[@order="1"]/expr')
         assert arg_node is not None
         block = self.evaluate_node(arg_node)
 
         if not isinstance(block, BlockObject):
-            raise InterpreterError(ErrorCode.INT_DNU, "whileTrue: requires a block")
+            raise InterpreterError(ErrorCode.SEM_ARITY, "whileTrue: requires a block")
 
         return output.while_true(block)
 
     def _handle_not(self, output: SolObject, sender: etree._Element) -> SolObject:
         """Handler for not selector"""
         if not isinstance(output, BooleanObject):
-            raise InterpreterError(ErrorCode.INT_DNU, "not: can only be called on Boolean")
+            raise InterpreterError(ErrorCode.SEM_ARITY, "not: can only be called on Boolean")
         return output.sol_not()
 
     def _handle_and(self, output: SolObject, sender: etree._Element) -> SolObject:
         """Handler for and selector"""
         if not isinstance(output, BooleanObject):
-            raise InterpreterError(ErrorCode.INT_DNU, "and: not called with Boolean")
+            raise InterpreterError(ErrorCode.SEM_ARITY, "and: not called with Boolean")
         arg_node = sender.find('arg[@order="1"]/expr')
         assert arg_node is not None
         block = self.evaluate_node(arg_node)
 
         if not isinstance(block, BlockObject):
-            raise InterpreterError(ErrorCode.INT_DNU, "and: requires a block")
+            raise InterpreterError(ErrorCode.SEM_ARITY, "and: requires a block")
 
         return output.sol_and(block)
 
     def _handle_or(self, output: SolObject, sender: etree._Element) -> SolObject:
         """Handler for or selector"""
         if not isinstance(output, BooleanObject):
-            raise InterpreterError(ErrorCode.INT_DNU, "or: not called with Boolean")
+            raise InterpreterError(ErrorCode.SEM_ARITY, "or: not called with Boolean")
         arg_node = sender.find('arg[@order="1"]/expr')
         assert arg_node is not None
         block = self.evaluate_node(arg_node)
 
         if not isinstance(block, BlockObject):
-            raise InterpreterError(ErrorCode.INT_DNU, "or: requires a block")
+            raise InterpreterError(ErrorCode.SEM_ARITY, "or: requires a block")
 
         return output.sol_or(block)
 
@@ -350,7 +375,7 @@ class Interpreter:
         """Handler for ifTrue:ifFalse selector"""
         if not isinstance(output, BooleanObject):
             raise InterpreterError(
-                ErrorCode.INT_DNU, "ifTrue:ifFalse: can only be called on Boolean"
+                ErrorCode.SEM_ARITY, "ifTrue:ifFalse: can only be called on Boolean"
             )
 
         arg_node1 = sender.find('arg[@order="1"]/expr')
@@ -358,14 +383,14 @@ class Interpreter:
         true_block = self.evaluate_node(arg_node1)
 
         if not isinstance(true_block, BlockObject):
-            raise InterpreterError(ErrorCode.INT_DNU, "ifTrue:ifFalse: requires a block")
+            raise InterpreterError(ErrorCode.SEM_ARITY, "ifTrue:ifFalse: requires a block")
 
         arg_node2 = sender.find('arg[@order="2"]/expr')
         assert arg_node2 is not None
         false_block = self.evaluate_node(arg_node2)
 
         if not isinstance(false_block, BlockObject):
-            raise InterpreterError(ErrorCode.INT_DNU, "ifTrue:ifFalse: requires a block")
+            raise InterpreterError(ErrorCode.SEM_ARITY, "ifTrue:ifFalse: requires a block")
 
         return output.if_true_if_false(true_block, false_block)
 
@@ -376,10 +401,14 @@ class Interpreter:
         obj = self.evaluate_node(arg_node)
         return output.sol_from(obj)
 
+    def _handle_new(self, output: SolObject, sender: etree._Element) -> SolObject:
+        """Handler for new selector - creates instance of receiver's class"""
+        return SolObject(output.class_name, None)
+
     def _handle_block_value(self, output: SolObject, sender: etree._Element) -> SolObject:
         """Handler for value/value:/value:value: etc. - block execution with variable arity"""
         if not isinstance(output, BlockObject):
-            raise InterpreterError(ErrorCode.INT_DNU, "value selector only for Block")
+            raise InterpreterError(ErrorCode.SEM_ARITY, "value selector only for Block")
 
         # Extract arguments based on actual arity in the block
         args: list[SolObject] = []
@@ -390,8 +419,71 @@ class Interpreter:
 
         output.interpreter = self
 
-        # Call sol_value with collected arguments
         return output.sol_value(*args)
+
+    def _handle_self(self, output: SolObject, sender: etree._Element) -> SolObject:
+        """Handler for self selector"""
+        return output
+
+    def _handle_super(self, output: SolObject, sender: etree._Element) -> SolObject:
+        """Handler for super selector"""
+        return output
+
+    def find_method(self, class_name: str, selector: str) -> Method | None:
+        """Recursively lookup method in class and parent classes"""
+        class_def = self.classes.get(class_name)
+        if not class_def:
+            # If class not found, it might be a built-in class
+            return None
+
+        method = next((m for m in class_def.methods if m.selector == selector), None)
+        if method:
+            return method
+
+        # Recursively look in parent class
+        if class_def.parent != "Object":
+            return self.find_method(class_def.parent, selector)
+
+        return None
+
+    def send_message(
+        self, receiver: SolObject, selector: str, args: list[SolObject] | None = None
+    ) -> SolObject:
+        """Send message to an object (user-defined or built-in)"""
+        if args is None:
+            args = []
+
+        # First check for user-defined methods
+        method = self.find_method(receiver.class_name, selector)
+        if method:
+            return self._execute_method(receiver, method, args)
+
+        raise InterpreterError(ErrorCode.INT_DNU, f"Unknown selector: {selector}")
+
+    def _execute_method(
+        self, receiver: SolObject, method: Method, args: list[SolObject]
+    ) -> SolObject:
+        """Execute a user-defined method"""
+        # Save current variable state
+        saved_vars = self.variables.copy()
+
+        try:
+            for i, param in enumerate(method.block.parameters):
+                if i < len(args):
+                    self.variables[param.name] = args[i]
+
+            result: SolObject = nil
+            for assign in method.block.assigns:
+                expr_xml = assign.expr.to_xml_tree()
+                result = self.evaluate_node(expr_xml)  # type: ignore[arg-type]
+
+                var_name = assign.target.name
+                if var_name != "_":
+                    self.variables[var_name] = result
+
+            return result
+        finally:
+            self.variables = saved_vars
 
     def execute(self, input_io: TextIO) -> None:
         """
@@ -400,19 +492,19 @@ class Interpreter:
         logger.info("Executing program")
 
         assert self.root is not None
+        assert self.current_program is not None
 
-        run_block = self.root.find('.//class[@name="Main"]/method[@selector="run"]/block')
-        assert run_block is not None
+        main_class_def = next((c for c in self.current_program.classes if c.name == "Main"), None)
 
-        for assign in sorted(run_block.findall("assign"), key=lambda x: int(x.get("order", 0))):
-            expr_node = assign.find("expr")
-            assert expr_node is not None
-            value = self.evaluate_node(expr_node)
+        if main_class_def is None:
+            raise InterpreterError(ErrorCode.SEM_MAIN, "Main class not found")
 
-            var_elem = assign.find("var")
-            assert var_elem is not None
-            var_name = var_elem.get("name")
-            assert var_name is not None
+        # Find the run method in Main class
+        run_method = next((m for m in main_class_def.methods if m.selector == "run"), None)
 
-            if var_name != "_":
-                self.variables[var_name] = value
+        if run_method is None:
+            raise InterpreterError(ErrorCode.SEM_MAIN, "Main missing run method")
+
+        # Create Main instance and execute run method
+        main_instance = SolObject("Main", None)
+        self._execute_method(main_instance, run_method, [])
