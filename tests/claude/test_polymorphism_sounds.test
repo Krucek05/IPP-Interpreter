@@ -1,0 +1,34 @@
++++ OOP
+*** Test polymorfismu - stejna zprava zaslana objektum ruznych nesouvisejicich trid
+!C! 0
+!I! 0
+>>> 3
+
+class Dog : Object {
+    sound [ | r := 'Woof'. ]
+}
+
+class Cat : Object {
+    sound [ | r := 'Meow'. ]
+}
+
+class Cow : Object {
+    sound [ | r := 'Moo'. ]
+}
+
+class AnimalCaller : Object {
+    callAll:and:and: [ :a1 :a2 :a3 |
+        _ := (a1 sound) print.
+        _ := '\n' print.
+        _ := (a2 sound) print.
+        _ := '\n' print.
+        _ := (a3 sound) print.
+    ]
+}
+
+class Main : Object {
+    run [ |
+        caller := AnimalCaller new.
+        _ := caller callAll: (Dog new) and: (Cat new) and: (Cow new).
+    ]
+}

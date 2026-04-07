@@ -1,0 +1,596 @@
+[
+  {
+    "name": "test_arithmetic",
+    "description": "Test celociselne aritmetiky a prevodu na retezec",
+    "category": "ARITHMETIC",
+    "weight": 2,
+    "status": "PASS",
+    "error": null,
+    "output": "137303"
+  },
+  {
+    "name": "test_as_string",
+    "description": "Test ze Object asString vraci prazdny retezec a potomci ho predefinuji",
+    "category": "BASIC",
+    "weight": 1,
+    "status": "PASS",
+    "error": null,
+    "output": "MyObj instance42hellotruenil"
+  },
+  {
+    "name": "test_block_as_arg",
+    "description": "Test predani bloku jako argumentu a zaslan zpravy value:value:",
+    "category": "BLOCKS",
+    "weight": 2,
+    "status": "PASS",
+    "error": null,
+    "output": "13\n42"
+  },
+  {
+    "name": "test_block_new",
+    "description": "Test Block new - prazdny bezparametricky blok",
+    "category": "BLOCKS",
+    "weight": 1,
+    "status": "FAIL",
+    "error": "Expected exit code 0, got 33",
+    "output": "stdout: 'false\\n'\nstderr: 'Error 33: value only for Block\\n'"
+  },
+  {
+    "name": "test_block_result",
+    "description": "Test ze vysledkem bloku je hodnota posledniho vyrazu",
+    "category": "BLOCKS",
+    "weight": 2,
+    "status": "FAIL",
+    "error": "Output mismatch",
+    "output": "Expected:\n'13\\ntrue\\n42'\n\nGot:\n'nil\\ntrue\\n42'"
+  },
+  {
+    "name": "test_bool_conditions",
+    "description": "Test podminenych vyrazu ifTrue:ifFalse: s booleovskymi hodnotami",
+    "category": "BOOL",
+    "weight": 2,
+    "status": "FAIL",
+    "error": "Output mismatch",
+    "output": "Expected:\n'b is greater\\nyes\\nequal'\n\nGot:\n'\\n\\n'"
+  },
+  {
+    "name": "test_bool_not",
+    "description": "Test metody not na True a False",
+    "category": "BOOL",
+    "weight": 1,
+    "status": "PASS",
+    "error": null,
+    "output": "falsetruetrue"
+  },
+  {
+    "name": "test_bool_shortcircuit",
+    "description": "Test zkraceneho vyhodnocovani and: a or:",
+    "category": "BOOL",
+    "weight": 2,
+    "status": "FAIL",
+    "error": "Output mismatch",
+    "output": "Expected:\n'false\\ntrue\\nfalse\\ntrue'\n\nGot:\n'false\\ntrue\\ntrue\\nfalse'"
+  },
+  {
+    "name": "test_bool_singleton",
+    "description": "Test ze true a false jsou jedinavci (singleton) - identicalTo:",
+    "category": "BOOL",
+    "weight": 1,
+    "status": "FAIL",
+    "error": "Output mismatch",
+    "output": "Expected:\n'true\\ntrue\\nfalse\\ntrue\\ntrue'\n\nGot:\n'true\\nfalse\\ntrue\\nfalse\\ntrue'"
+  },
+  {
+    "name": "test_closure",
+    "description": "Test bloku jako uzaveru (closure) a zasilan zprav value/value:",
+    "category": "BLOCKS",
+    "weight": 2,
+    "status": "PASS",
+    "error": null,
+    "output": "13\n17"
+  },
+  {
+    "name": "test_deep_inheritance",
+    "description": "Test viceurovnoveho dedeni (3 urovne) a vyhledavani metod",
+    "category": "OOP",
+    "weight": 2,
+    "status": "FAIL",
+    "error": "Expected exit code 0, got 33",
+    "output": "stdout: 'hello from A\\nC\\n'\nstderr: 'Error 33: print can only be called on String\\n'"
+  },
+  {
+    "name": "test_equalto_override",
+    "description": "Test predefinovani equalTo: v uzivatelske tride pro porovnani podle atributu",
+    "category": "OOP",
+    "weight": 3,
+    "status": "FAIL",
+    "error": "Output mismatch",
+    "output": "Expected:\n'true\\nfalse\\nfalse\\ntrue'\n\nGot:\n'nil\\nnil\\n\\n'"
+  },
+  {
+    "name": "test_equalto_override_subclass",
+    "description": "Test predefinovani equalTo: v podtride Integer - porovnani modulo 10",
+    "category": "OOP",
+    "weight": 2,
+    "status": "FAIL",
+    "error": "Expected exit code 0, got 33",
+    "output": "stdout: ''\nstderr: 'Error 33: minus: only for Integer\\n'"
+  },
+  {
+    "name": "test_error31_no_main",
+    "description": "Test staticke chyby 31 - chybejici trida Main",
+    "category": "ERRORS",
+    "weight": 1,
+    "status": "PASS",
+    "error": null,
+    "output": "(no output)"
+  },
+  {
+    "name": "test_error32_uninit_nested",
+    "description": "Test chyby 32 - cteni neinicializovane promenne ve vnorenem bloku",
+    "category": "ERRORS",
+    "weight": 1,
+    "status": "FAIL",
+    "error": "Expected exit code 32, got 0",
+    "output": "stdout: ''\nstderr: ''"
+  },
+  {
+    "name": "test_error32_uninit_var",
+    "description": "Test chyby 32 - cteni neinicializovane lokalni promenne",
+    "category": "ERRORS",
+    "weight": 1,
+    "status": "FAIL",
+    "error": "Expected exit code 32, got 0",
+    "output": "stdout: ''\nstderr: ''"
+  },
+  {
+    "name": "test_error32_use_before_assign",
+    "description": "Test chyby 32 - promenna pouzita ve vyrazu pred prvnim prirazenim",
+    "category": "ERRORS",
+    "weight": 1,
+    "status": "FAIL",
+    "error": "Expected exit code 32, got 33",
+    "output": "stdout: ''\nstderr: 'Error 33: plus: only for Integer\\n'"
+  },
+  {
+    "name": "test_error34_param_assign",
+    "description": "Test staticke chyby 34 - prirazeni do formalniho parametru",
+    "category": "ERRORS",
+    "weight": 1,
+    "status": "FAIL",
+    "error": "Expected exit code 34, got 0",
+    "output": "stdout: ''\nstderr: ''"
+  },
+  {
+    "name": "test_error35_redefine_class",
+    "description": "Test staticke chyby 35 - redefinice tridy",
+    "category": "ERRORS",
+    "weight": 1,
+    "status": "FAIL",
+    "error": "Expected exit code 35, got 0",
+    "output": "stdout: 'second'\nstderr: ''"
+  },
+  {
+    "name": "test_error51_uninit_attr",
+    "description": "Test chyby 51 - cteni neexistujiciho instancniho atributu (chyba 51, ne 32)",
+    "category": "ERRORS",
+    "weight": 1,
+    "status": "FAIL",
+    "error": "Expected exit code 51, got 0",
+    "output": "stdout: ''\nstderr: ''"
+  },
+  {
+    "name": "test_error51_unknown_msg",
+    "description": "Test behove chyby 51 - prijemce nezna zpravu",
+    "category": "ERRORS",
+    "weight": 1,
+    "status": "FAIL",
+    "error": "Expected exit code 51, got 0",
+    "output": "stdout: ''\nstderr: ''"
+  },
+  {
+    "name": "test_error51_wrong_arity",
+    "description": "Test behove chyby 51 - spatna arita pri volani bloku (value misto value:)",
+    "category": "ERRORS",
+    "weight": 1,
+    "status": "PASS",
+    "error": null,
+    "output": "(no output)"
+  },
+  {
+    "name": "test_error53_div_zero",
+    "description": "Test behove chyby 53 - deleni nulou",
+    "category": "ERRORS",
+    "weight": 1,
+    "status": "PASS",
+    "error": null,
+    "output": "(no output)"
+  },
+  {
+    "name": "test_error53_from_incompatible",
+    "description": "Test behove chyby 53 - from: s nekompatibilnim argumentem (Integer podtrida z retezce)",
+    "category": "ERRORS",
+    "weight": 1,
+    "status": "FAIL",
+    "error": "Expected exit code 53, got 0",
+    "output": "stdout: ''\nstderr: ''"
+  },
+  {
+    "name": "test_error54_attr_collision",
+    "description": "Test behove chyby 54 - jmeno atributu koliduje s metodou",
+    "category": "ERRORS",
+    "weight": 1,
+    "status": "FAIL",
+    "error": "Expected exit code 54, got 0",
+    "output": "stdout: ''\nstderr: ''"
+  },
+  {
+    "name": "test_escape_sequences",
+    "description": "Test escape sekvenci v retezci: \\n, \\', \\\\",
+    "category": "STRING",
+    "weight": 1,
+    "status": "PASS",
+    "error": null,
+    "output": "line1\nline2\nit's ok\nback\\slash\na'b\\c\nd"
+  },
+  {
+    "name": "test_factorial",
+    "description": "Test rekurzivniho faktorialu pomoci podtridy Integer",
+    "category": "ARITHMETIC",
+    "weight": 3,
+    "status": "FAIL",
+    "error": "Output mismatch",
+    "output": "Expected:\n'1\\n1\\n120\\n3628800'\n\nGot:\n'nil\\nnil\\nnil\\nnil'"
+  },
+  {
+    "name": "test_from_shallow_copy",
+    "description": "Test from: - melka kopie instancnich atributu",
+    "category": "OOP",
+    "weight": 2,
+    "status": "FAIL",
+    "error": "Expected exit code 0, got 33",
+    "output": "stdout: ''\nstderr: 'Error 33: print can only be called on String\\n'"
+  },
+  {
+    "name": "test_hello_world",
+    "description": "Test zakladniho programu - vypis retezce",
+    "category": "BASIC",
+    "weight": 1,
+    "status": "PASS",
+    "error": null,
+    "output": "Hello, World!"
+  },
+  {
+    "name": "test_identical_vs_equal",
+    "description": "Test identicalTo: vs equalTo: na celych cislech",
+    "category": "ARITHMETIC",
+    "weight": 2,
+    "status": "FAIL",
+    "error": "Output mismatch",
+    "output": "Expected:\n'true\\ntrue\\ntrue\\ntrue\\nfalse'\n\nGot:\n'\\n\\n\\n\\n'"
+  },
+  {
+    "name": "test_inheritance",
+    "description": "Test dedicnosti, pretizeni metod a pouziti self a super",
+    "category": "OOP",
+    "weight": 3,
+    "status": "FAIL",
+    "error": "Output mismatch",
+    "output": "Expected:\n'I am an animalWoofWoofSome animal sound'\n\nGot:\n'I am an animal'"
+  },
+  {
+    "name": "test_input_loop",
+    "description": "Test nacitani cisel ze vstupu ve smycce dokud nedojde 0",
+    "category": "STRING",
+    "weight": 3,
+    "status": "FAIL",
+    "error": "Output mismatch",
+    "output": "Expected:\n'38'\n\nGot:\n'nil'"
+  },
+  {
+    "name": "test_instance_attrs",
+    "description": "Test instancnich atributu - nastaveni a cteni na self a jine instance",
+    "category": "OOP",
+    "weight": 2,
+    "status": "FAIL",
+    "error": "Expected exit code 0, got 33",
+    "output": "stdout: 'nil\\nnil\\n'\nstderr: 'Error 33: print can only be called on String\\n'"
+  },
+  {
+    "name": "test_integer_subclass",
+    "description": "Test Integer from: a pouziti podtridy Integer",
+    "category": "OOP",
+    "weight": 2,
+    "status": "FAIL",
+    "error": "Expected exit code 0, got 33",
+    "output": "stdout: ''\nstderr: 'Error 33: plus: only for Integer\\n'"
+  },
+  {
+    "name": "test_lexical_self",
+    "description": "Test ze self uvnitr bloku odkazuje na instanci z doby definice bloku (lexikalni rozsah)",
+    "category": "BLOCKS",
+    "weight": 2,
+    "status": "FAIL",
+    "error": "Expected exit code 0, got 33",
+    "output": "stdout: ''\nstderr: 'Error 33: print can only be called on String\\n'"
+  },
+  {
+    "name": "test_nil",
+    "description": "Test hodnoty nil - isNil, asString, identita jedinavka",
+    "category": "BASIC",
+    "weight": 1,
+    "status": "FAIL",
+    "error": "Output mismatch",
+    "output": "Expected:\n'nil\\ntrue\\ntrue'\n\nGot:\n'nil\\ntrue\\nnil'"
+  },
+  {
+    "name": "test_nil_singleton",
+    "description": "Test ze nil je jedinavek - vsechny reference na nil jsou identicke",
+    "category": "BASIC",
+    "weight": 1,
+    "status": "FAIL",
+    "error": "Output mismatch",
+    "output": "Expected:\n'true\\ntrue\\ntrue\\ntrue'\n\nGot:\n'nil\\nnil\\n\\n'"
+  },
+  {
+    "name": "test_polymorphism",
+    "description": "Test polymorfismu - nesprizbnene tridy reagujici na stejny selektor",
+    "category": "OOP",
+    "weight": 3,
+    "status": "FAIL",
+    "error": "Output mismatch",
+    "output": "Expected:\n'Circle area: \\n48\\nRectangle area: \\n30\\nTriangle area: \\n12\\n'\n\nGot:\n'Circle area: \\nnil\\nRectangle area: \\nnil\\nTriangle area: \\nnil\\n'"
+  },
+  {
+    "name": "test_polymorphism_sounds",
+    "description": "Test polymorfismu - stejna zprava zaslana objektum ruznych nesouvisejicich trid",
+    "category": "OOP",
+    "weight": 3,
+    "status": "PASS",
+    "error": null,
+    "output": "Woof\nMeow\nMoo"
+  },
+  {
+    "name": "test_string_as_integer",
+    "description": "Test prevodu retezce na cele cislo - platny a neplatny vstup",
+    "category": "STRING",
+    "weight": 2,
+    "status": "FAIL",
+    "error": "Expected exit code 0, got 52",
+    "output": "stdout: '123\\n-42\\n'\nstderr: \"Error 52: Cannot convert 'abc' to integer\\n\""
+  },
+  {
+    "name": "test_string_concat_nonstring",
+    "description": "Test String concatenateWith: s argumentem jineho typu nez String - vraci nil",
+    "category": "STRING",
+    "weight": 2,
+    "status": "FAIL",
+    "error": "Output mismatch",
+    "output": "Expected:\n'true\\ntrue\\ntrue\\nhello world'\n\nGot:\n'false\\nfalse\\nfalse\\nhello'"
+  },
+  {
+    "name": "test_string_equalto_nonstring",
+    "description": "Test String equalTo: s argumentem jineho typu nez String - vraci false",
+    "category": "STRING",
+    "weight": 2,
+    "status": "FAIL",
+    "error": "Output mismatch",
+    "output": "Expected:\n'false\\nfalse\\nfalse\\nfalse\\ntrue'\n\nGot:\n'hello\\nhello\\nhello\\nhello\\nhello'"
+  },
+  {
+    "name": "test_string_input",
+    "description": "Test cteni retezce ze vstupu a jeho vypisu",
+    "category": "STRING",
+    "weight": 2,
+    "status": "PASS",
+    "error": null,
+    "output": "21\n42"
+  },
+  {
+    "name": "test_string_ops",
+    "description": "Test operaci nad retezci - konkatenace, podretezec, delka",
+    "category": "STRING",
+    "weight": 2,
+    "status": "FAIL",
+    "error": "Expected exit code 0, got 33",
+    "output": "stdout: 'Hello\\nHello\\n'\nstderr: 'Error 33: print can only be called on String\\n'"
+  },
+  {
+    "name": "test_string_substring",
+    "description": "Test podretezce startsWith:endsBefore: - hranicni pripady",
+    "category": "STRING",
+    "weight": 2,
+    "status": "FAIL",
+    "error": "Expected exit code 0, got 33",
+    "output": "stdout: ''\nstderr: 'Error 33: print can only be called on String\\n'"
+  },
+  {
+    "name": "test_super_attr",
+    "description": "Test pristupu k instancnimu atributu pres super, kdyz metoda podtridy stini",
+    "category": "OOP",
+    "weight": 2,
+    "status": "FAIL",
+    "error": "Expected exit code 54, got 33",
+    "output": "stdout: ''\nstderr: 'Error 33: value: only for Block\\n'"
+  },
+  {
+    "name": "test_times_repeat",
+    "description": "Test opakovaneho provedeni bloku pomoci timesRepeat:",
+    "category": "BLOCKS",
+    "weight": 2,
+    "status": "FAIL",
+    "error": "Output mismatch",
+    "output": "Expected:\n'15\\ntrue'\n\nGot:\n'nil\\ntrue'"
+  },
+  {
+    "name": "test_type_checks",
+    "description": "Test typovych dotazu isNumber, isString, isBlock, isBoolean, isNil",
+    "category": "BASIC",
+    "weight": 1,
+    "status": "FAIL",
+    "error": "Output mismatch",
+    "output": "Expected:\n'true\\ntrue\\ntrue\\ntrue\\ntrue\\ntrue\\nfalse\\nfalse\\nfalse\\nfalse'\n\nGot:\n'false\\nhi\\nfalse\\ntrue\\ntrue\\ntrue\\n42\\nfalse\\nfalse\\nfalse'"
+  },
+  {
+    "name": "test_while",
+    "description": "Test smycky whileTrue:",
+    "category": "BLOCKS",
+    "weight": 2,
+    "status": "FAIL",
+    "error": "Expected exit code 0, got 33",
+    "output": "stdout: ''\nstderr: 'Error 33: greaterThan: only for Integer\\n'"
+  },
+  {
+    "name": "test_while_result",
+    "description": "Test ze whileTrue: vraci navratovou hodnotu posledniho provedeni tela",
+    "category": "BLOCKS",
+    "weight": 1,
+    "status": "FAIL",
+    "error": "Expected exit code 0, got 33",
+    "output": "stdout: ''\nstderr: 'Error 33: greaterThan: only for Integer\\n'"
+  },
+  {
+    "name": "example",
+    "description": "Test jednoducheho programu",
+    "category": "BASIC",
+    "weight": 2,
+    "status": "FAIL",
+    "error": "Expected exit code 42, got 0",
+    "output": "stdout: ''\nstderr: ''"
+  },
+  {
+    "name": "parse_only",
+    "description": "Testing parsing only",
+    "category": "PARSE_ONLY",
+    "weight": 1,
+    "status": "PASS",
+    "error": null,
+    "output": "(no output)"
+  },
+  {
+    "name": "timesRepeat1",
+    "description": "Valid timesRepeat",
+    "category": "TIMES_REPEAT",
+    "weight": 1,
+    "status": "FAIL",
+    "error": "Output mismatch",
+    "output": "Expected:\n'32\\n'\n\nGot:\n'1\\n'"
+  },
+  {
+    "name": "timesRepeat2",
+    "description": "Invalid timesRepeat",
+    "category": "TIMES_REPEAT",
+    "weight": 1,
+    "status": "PASS",
+    "error": null,
+    "output": "(no output)"
+  },
+  {
+    "name": "ambigous1",
+    "description": "1_2_11_reakce_na_zpravu_A.sol2",
+    "category": "INVALID_TESTS",
+    "weight": 1,
+    "status": "FAIL",
+    "error": "Expected exit code 54, got 0",
+    "output": "stdout: ''\nstderr: ''"
+  },
+  {
+    "name": "ambigous2",
+    "description": "Parser with .out",
+    "category": "INVALID_TESTS",
+    "weight": 1,
+    "status": "FAIL",
+    "error": "Expected exit code 54, got 52",
+    "output": "stdout: '123\\n-42\\n'\nstderr: \"Error 52: Cannot convert 'abc' to integer\\n\""
+  },
+  {
+    "name": "ambigous3",
+    "description": "no interpret value",
+    "category": "INVALID_TESTS",
+    "weight": 1,
+    "status": "PASS",
+    "error": null,
+    "output": "(no output)"
+  },
+  {
+    "name": "ambigous4",
+    "description": "Parser with .out",
+    "category": "INVALID_TESTS",
+    "weight": 1,
+    "status": "PASS",
+    "error": null,
+    "output": "123\n-42\n"
+  },
+  {
+    "name": "zad0",
+    "description": "self_react.sol2",
+    "category": "ZADANI_SOL",
+    "weight": 1,
+    "status": "PASS",
+    "error": null,
+    "output": "ahoj"
+  },
+  {
+    "name": "zad1",
+    "description": "self_react.sol2",
+    "category": "ZADANI_SOL",
+    "weight": 1,
+    "status": "FAIL",
+    "error": "Expected exit code 0, got 33",
+    "output": "stdout: ''\nstderr: 'Error 33: print can only be called on String\\n'"
+  },
+  {
+    "name": "zad2",
+    "description": "super_react.sol2",
+    "category": "ZADANI_SOL",
+    "weight": 2,
+    "status": "FAIL",
+    "error": "Expected exit code 0, got 33",
+    "output": "stdout: 'foo'\nstderr: 'Error 33: print can only be called on String\\n'"
+  },
+  {
+    "name": "zad3",
+    "description": "super_react.sol2",
+    "category": "ZADANI_SOL",
+    "weight": 1,
+    "status": "FAIL",
+    "error": "Expected exit code 54, got 33",
+    "output": "stdout: ''\nstderr: 'Error 33: value: only for Block\\n'"
+  },
+  {
+    "name": "zad4",
+    "description": "faktorial.sol2",
+    "category": "ZADANI_SOL",
+    "weight": 2,
+    "status": "FAIL",
+    "error": "Output mismatch",
+    "output": "Expected:\n'5040'\n\nGot:\n'nil'"
+  },
+  {
+    "name": "zad5",
+    "description": "faktorial.sol2",
+    "category": "ZADANI_SOL",
+    "weight": 2,
+    "status": "FAIL",
+    "error": "Output mismatch",
+    "output": "Expected:\n'120'\n\nGot:\n'nil'"
+  },
+  {
+    "name": "zad6",
+    "description": "example.sol2",
+    "category": "ZADANI_SOL",
+    "weight": 2,
+    "status": "FAIL",
+    "error": "Output mismatch",
+    "output": "Expected:\n'2'\n\nGot:\n'nil'"
+  },
+  {
+    "name": "zad7",
+    "description": "closure.sol2",
+    "category": "ZADANI_SOL",
+    "weight": 2,
+    "status": "FAIL",
+    "error": "Expected exit code 0, got 33",
+    "output": "stdout: ''\nstderr: 'Error 33: value only for Block\\n'"
+  }
+]

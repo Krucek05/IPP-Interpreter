@@ -1,0 +1,12 @@
++++ ERRORS
+*** Test chyby 32 - cteni neinicializovane lokalni promenne
+!C! 0
+!I! 32
+>>> 1
+
+class Main : Object {
+    run [ |
+        "x nikdy nebylo prirazeno - cteni zpusobi chybu 32"
+        _ := x asString.
+    ]
+}

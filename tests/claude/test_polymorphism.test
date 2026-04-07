@@ -1,0 +1,74 @@
++++ OOP
+*** Test polymorfismu - nesprizbnene tridy reagujici na stejny selektor
+!C! 0
+!I! 0
+>>> 3
+
+class Circle : Object {
+    initR: [ :r | _ := self radius: r. ]
+    area [ |
+        "area = r * r * 3 (aproximace pi=3 pro jednoduchost)"
+        r := (self radius) multiplyBy: (self radius).
+        r := r multiplyBy: 3.
+    ]
+    describe [ |
+        _ := 'Circle area: \n' print.
+        _ := ((self area) asString) print.
+        _ := '\n' print.
+    ]
+}
+
+class Rectangle : Object {
+    initW:h: [ :w :h |
+        _ := self width: w.
+        _ := self height: h.
+    ]
+    area [ |
+        r := (self width) multiplyBy: (self height).
+    ]
+    describe [ |
+        _ := 'Rectangle area: \n' print.
+        _ := ((self area) asString) print.
+        _ := '\n' print.
+    ]
+}
+
+class Triangle : Object {
+    initBase:height: [ :b :h |
+        _ := self base: b.
+        _ := self height: h.
+    ]
+    area [ |
+        "area = base * height / 2"
+        r := ((self base) multiplyBy: (self height)) divBy: 2.
+    ]
+    describe [ |
+        _ := 'Triangle area: \n' print.
+        _ := ((self area) asString) print.
+        _ := '\n' print.
+    ]
+}
+
+class Printer : Object {
+    printArea: [ :shape |
+        _ := shape describe.
+    ]
+}
+
+class Main : Object {
+    run [ |
+        p := Printer new.
+
+        c := Circle new.
+        _ := c initR: 4.
+        _ := p printArea: c.
+
+        r := Rectangle new.
+        _ := r initW: 5 h: 6.
+        _ := p printArea: r.
+
+        t := Triangle new.
+        _ := t initBase: 8 height: 3.
+        _ := p printArea: t.
+    ]
+}

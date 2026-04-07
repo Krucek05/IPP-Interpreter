@@ -1,0 +1,44 @@
++++ OOP
+*** Test predefinovani equalTo: v uzivatelske tride pro porovnani podle atributu
+!C! 0
+!I! 0
+>>> 3
+
+class Point : Object {
+    initX:y: [ :x :y |
+        _ := self x: x.
+        _ := self y: y.
+    ]
+    equalTo: [ :other |
+        xEq := (self x) equalTo: (other x).
+        yEq := (self y) equalTo: (other y).
+        r := xEq and: [| _ := yEq. ].
+    ]
+}
+
+class Main : Object {
+    run [ |
+        p1 := Point new. _ := p1 initX: 3 y: 4.
+        p2 := Point new. _ := p2 initX: 3 y: 4.
+        p3 := Point new. _ := p3 initX: 1 y: 2.
+
+        "p1 a p2 maji stejne souradnice - equalTo: vraci true"
+        r1 := p1 equalTo: p2.
+        _ := (r1 asString) print.
+        _ := '\n' print.
+
+        "p1 a p3 maji ruzne souradnice - vraci false"
+        r2 := p1 equalTo: p3.
+        _ := (r2 asString) print.
+        _ := '\n' print.
+
+        "identicalTo: stale funguje spravne - p1 != p2 jako objekty"
+        r3 := p1 identicalTo: p2.
+        _ := (r3 asString) print.
+        _ := '\n' print.
+
+        "identicalTo: p1 == p1"
+        r4 := p1 identicalTo: p1.
+        _ := (r4 asString) print.
+    ]
+}

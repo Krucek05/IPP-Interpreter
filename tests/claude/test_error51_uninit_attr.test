@@ -1,0 +1,12 @@
++++ ERRORS
+*** Test chyby 51 - cteni neexistujiciho instancniho atributu (chyba 51, ne 32)
+!C! 0
+!I! 51
+>>> 1
+
+class Main : Object {
+    run [ |
+        "Atribut 'score' nebyl nikdy nastaven - chyba 51 (nerozumi zprave)"
+        _ := self score.
+    ]
+}

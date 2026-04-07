@@ -17,7 +17,7 @@
                     </expr>
                     <arg order="1">
                       <expr>
-                        <literal class="Integer" value="10"/>
+                        <literal class="Integer" value="4"/>
                       </expr>
                     </arg>
                   </send>
@@ -64,4 +64,5 @@
       </block>
     </method>
   </class>
+  <class name="Foo" parent="Main"/>
 </program>

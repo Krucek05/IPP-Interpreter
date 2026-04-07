@@ -1,0 +1,30 @@
++++ STRING
+*** Test String concatenateWith: s argumentem jineho typu nez String - vraci nil
+!C! 0
+!I! 0
+>>> 2
+
+class Main : Object {
+    run [ |
+        s := 'hello'.
+
+        "Konkatenace s cislem - vraci nil"
+        r1 := s concatenateWith: 42.
+        x := (r1 isNil) asString. _ := x print.
+        _ := '\n' print.
+
+        "Konkatenace s nil - vraci nil"
+        r2 := s concatenateWith: nil.
+        x := (r2 isNil) asString. _ := x print.
+        _ := '\n' print.
+
+        "Konkatenace s true - vraci nil"
+        r3 := s concatenateWith: true.
+        x := (r3 isNil) asString. _ := x print.
+        _ := '\n' print.
+
+        "Konkatenace s podtridou String - funguje"
+        r4 := s concatenateWith: ' world'.
+        _ := r4 print.
+    ]
+}

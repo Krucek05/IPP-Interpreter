@@ -1,0 +1,15 @@
++++ ERRORS
+*** Test chyby 32 - cteni neinicializovane promenne ve vnorenem bloku
+!C! 0
+!I! 32
+>>> 1
+
+class Main : Object {
+    run [ |
+        b := [|
+            "ghost nebyla nikdy definovana ani v tomto bloku ani ve vnejsim"
+            _ := ghost asString.
+        ].
+        _ := b value.
+    ]
+}

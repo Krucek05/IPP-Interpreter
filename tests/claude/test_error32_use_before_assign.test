@@ -1,0 +1,13 @@
++++ ERRORS
+*** Test chyby 32 - promenna pouzita ve vyrazu pred prvnim prirazenim
+!C! 0
+!I! 32
+>>> 1
+
+class Main : Object {
+    run [ |
+        "Pokus pricist k neinicializovane promenne"
+        result := uninitialised plus: 1.
+        _ := (result asString) print.
+    ]
+}

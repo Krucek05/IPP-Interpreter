@@ -2,11 +2,13 @@
 
 import sys
 from io import StringIO
+from pathlib import Path
 
 import pytest
 from lxml import etree
 
-sys.path.insert(0, "src")
+# Add src directory to path (works from any directory)
+sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from interpreter.error_codes import ErrorCode
 from interpreter.exceptions import InterpreterError
@@ -36,7 +38,9 @@ def _make_xml(body: str) -> str:
 def _run(xml: str, stdin: str = "") -> str:
     """Parse the given XML string, run the interpreter, return captured stdout."""
     interp = Interpreter()
-    interp.current_program = Program.from_xml_tree(etree.fromstring(xml.encode()))  # type: ignore
+    xml_root = etree.fromstring(xml.encode())
+    interp.root = xml_root
+    interp.current_program = Program.from_xml_tree(xml_root)  # type: ignore
     interp.check_main()
 
     captured = StringIO()
@@ -260,7 +264,6 @@ def _make_main_with_methods(extra_methods_xml: str, run_body: str) -> str:
 
 
 class TestBlockLiterals:
-    @pytest.mark.xfail(reason="block value: not yet implemented")
     def test_block_value_with_string_arg_prints_arg(self):
         """b := [ :x | _ := x print. ]. _ := b value: 'hello'.  →  hello"""
         blk = _block(1, ["x"], _assign(1, "_", _send_print(_var("x"))))
@@ -270,7 +273,6 @@ class TestBlockLiterals:
         xml = _make_xml(body)
         assert _run(xml) == "hello\n"
 
-    @pytest.mark.xfail(reason="block value not yet implemented")
     def test_block_nullary_value(self):
         """b := [| _ := 'in-block' print. ]. _ := b value.  →  in-block"""
         blk = _block(0, [], _assign(1, "_", _send_print(_str_literal("in-block"))))
@@ -278,7 +280,6 @@ class TestBlockLiterals:
         xml = _make_xml(body)
         assert _run(xml) == "in-block\n"
 
-    @pytest.mark.xfail(reason="block value: / asString not yet implemented")
     def test_block_ignores_param_returns_last_expr(self):
         """b := [ :x | _ := 42. ]. c := b value: 16.  c = 42 (example 1)."""
         blk = _block(1, ["x"], _assign(1, "_", _int_literal(42)))
@@ -290,7 +291,6 @@ class TestBlockLiterals:
         xml = _make_xml(body)
         assert _run(xml) == "42\n"
 
-    @pytest.mark.xfail(reason="block value: not yet implemented")
     def test_block_called_multiple_times_with_different_args(self):
         """Same block [ :x | x print ] evaluated twice with different args."""
         blk = _block(1, ["x"], _assign(1, "_", _send_print(_var("x"))))
@@ -1013,7 +1013,6 @@ class TestSuperKeyword:
 
 
 class TestArithmetic:
-    @pytest.mark.xfail(reason="plus: not yet implemented")
     def test_integer_plus(self):
         """4 plus: 10  →  14."""
         body = _assign(
@@ -1024,7 +1023,6 @@ class TestArithmetic:
         xml = _make_xml(body)
         assert _run(xml) == "14\n"
 
-    @pytest.mark.xfail(reason="plus: not yet implemented")
     def test_plus_with_negative(self):
         """5 plus: -1  →  4."""
         body = _assign(
@@ -1035,7 +1033,6 @@ class TestArithmetic:
         xml = _make_xml(body)
         assert _run(xml) == "4\n"
 
-    @pytest.mark.xfail(reason="multiplyBy: not yet implemented")
     def test_integer_multiply(self):
         """3 multiplyBy: 4  →  12."""
         body = _assign(
@@ -1070,7 +1067,6 @@ class TestArithmetic:
         xml = _make_xml(body)
         assert _run(xml) == "false\n"
 
-    @pytest.mark.xfail(reason="greaterThan: not yet implemented")
     def test_greater_than_true(self):
         """5 greaterThan: 0  →  True."""
         body = _assign(
@@ -1083,7 +1079,6 @@ class TestArithmetic:
         xml = _make_xml(body)
         assert _run(xml) == "true\n"
 
-    @pytest.mark.xfail(reason="greaterThan: not yet implemented")
     def test_greater_than_false(self):
         """0 greaterThan: 5  →  False."""
         body = _assign(
@@ -1338,7 +1333,6 @@ class TestStringMessages:
         xml = _make_xml(body)
         assert _run(xml) == "42\n"
 
-    @pytest.mark.xfail(reason="asInteger not yet implemented")
     def test_as_integer_then_arithmetic(self):
         """('10' asInteger) plus: 5  →  15."""
         body = _assign(
@@ -1361,7 +1355,6 @@ class TestStringMessages:
 
 
 class TestClosures:
-    @pytest.mark.xfail(reason="closures / block value not yet implemented")
     def test_block_sees_updated_outer_variable(self):
         """x := 1. b := [| ...x... ]. x := 9. b value.  →  block uses x=9. (example 9)"""
         body = """
@@ -1398,7 +1391,6 @@ class TestClosures:
         # Block closes over x; after x := 9 the block should see 9
         assert _run(xml) == "9\n"
 
-    @pytest.mark.xfail(reason="closures / block value not yet implemented")
     def test_block_evaluated_twice_reads_same_closure_var(self):
         """Block evaluated twice; both reads see the same (latest) x. (example 9 r1/r2)"""
         body = """
@@ -1437,7 +1429,6 @@ class TestClosures:
         xml = _make_xml(_assign(1, "_", _send_print(_send_as_string(_str_literal("hello")))))
         assert _run(xml) == "hello\n"
 
-    @pytest.mark.xfail(reason="asString on True/False not yet implemented")
     def test_true_as_string_print(self):
         """(true asString) print  →  'true'"""
         xml = _make_xml(
@@ -1445,7 +1436,6 @@ class TestClosures:
         )
         assert _run(xml) == "true\n"
 
-    @pytest.mark.xfail(reason="asString on True/False not yet implemented")
     def test_false_as_string_print(self):
         """(false asString) print  →  'false'"""
         xml = _make_xml(
@@ -1453,7 +1443,6 @@ class TestClosures:
         )
         assert _run(xml) == "false\n"
 
-    @pytest.mark.xfail(reason="asString on Nil not yet implemented")
     def test_nil_as_string_print(self):
         """(nil asString) print  →  'nil'"""
         xml = _make_xml(
@@ -1461,7 +1450,6 @@ class TestClosures:
         )
         assert _run(xml) == "nil\n"
 
-    @pytest.mark.xfail(reason="asString on Integer not yet implemented")
     def test_as_string_result_is_string_printable(self):
         """asString result can be stored and printed later."""
         body = _assign(1, "s", _send_as_string(_int_literal(123))) + _assign(
@@ -1470,7 +1458,6 @@ class TestClosures:
         xml = _make_xml(body)
         assert _run(xml) == "123\n"
 
-    @pytest.mark.xfail(reason="asString chaining not yet implemented")
     def test_chain_as_string_print_multiple(self):
         """Print multiple asString conversions in order."""
         body = (
@@ -1497,7 +1484,9 @@ class TestStaticChecks:
   </class>
 </program>"""
         interp = Interpreter()
-        interp.current_program = Program.from_xml_tree(etree.fromstring(xml.encode()))  # type: ignore
+        xml_root = etree.fromstring(xml.encode())
+        interp.root = xml_root
+        interp.current_program = Program.from_xml_tree(xml_root)  # type: ignore
         with pytest.raises(InterpreterError) as exc_info:
             interp.check_main()
         assert exc_info.value.error_code == ErrorCode.SEM_MAIN
@@ -1511,7 +1500,9 @@ class TestStaticChecks:
   </class>
 </program>"""
         interp = Interpreter()
-        interp.current_program = Program.from_xml_tree(etree.fromstring(xml.encode()))  # type: ignore
+        xml_root = etree.fromstring(xml.encode())
+        interp.root = xml_root
+        interp.current_program = Program.from_xml_tree(xml_root)  # type: ignore
         with pytest.raises(InterpreterError) as exc_info:
             interp.check_main()
         assert exc_info.value.error_code == ErrorCode.SEM_MAIN
@@ -1971,7 +1962,6 @@ class TestEqualTo:
 
 
 class TestIntegerMinusDivBy:
-    @pytest.mark.xfail(reason="minus: not yet implemented")
     def test_minus(self):
         """10 minus: 3  →  7"""
         body = _assign(
@@ -1982,7 +1972,6 @@ class TestIntegerMinusDivBy:
         xml = _make_xml(body)
         assert _run(xml) == "7\n"
 
-    @pytest.mark.xfail(reason="minus: not yet implemented")
     def test_minus_negative_result(self):
         """3 minus: 10  →  -7"""
         body = _assign(
@@ -1993,7 +1982,6 @@ class TestIntegerMinusDivBy:
         xml = _make_xml(body)
         assert _run(xml) == "-7\n"
 
-    @pytest.mark.xfail(reason="divBy: not yet implemented")
     def test_div_by(self):
         """10 divBy: 3  →  3  (integer division)"""
         body = _assign(
@@ -2004,7 +1992,6 @@ class TestIntegerMinusDivBy:
         xml = _make_xml(body)
         assert _run(xml) == "3\n"
 
-    @pytest.mark.xfail(reason="divBy: zero not yet implemented")
     def test_div_by_zero_raises(self):
         """10 divBy: 0  →  INT_INVALID_ARG (53)"""
         body = _assign(1, "_", _send_msg("divBy:", _int_literal(10), _int_literal(0)))
@@ -2094,14 +2081,12 @@ class TestStringSliceAndLength:
 
 
 class TestTypeChecks:
-    @pytest.mark.xfail(reason="isNil not yet implemented")
     def test_nil_is_nil(self):
         """nil isNil asString print  →  'true'"""
         body = _assign(1, "_", _send_print(_send_as_string(_send_msg("isNil", _nil_literal()))))
         xml = _make_xml(body)
         assert _run(xml) == "true\n"
 
-    @pytest.mark.xfail(reason="isNil not yet implemented")
     def test_string_is_not_nil(self):
         """'hi' isNil asString print  →  'false'"""
         body = _assign(
@@ -2110,7 +2095,6 @@ class TestTypeChecks:
         xml = _make_xml(body)
         assert _run(xml) == "false\n"
 
-    @pytest.mark.xfail(reason="isBoolean not yet implemented")
     def test_true_is_boolean(self):
         """true isBoolean asString print  →  'true'"""
         body = _assign(
@@ -2119,7 +2103,6 @@ class TestTypeChecks:
         xml = _make_xml(body)
         assert _run(xml) == "true\n"
 
-    @pytest.mark.xfail(reason="isBoolean not yet implemented")
     def test_integer_is_not_boolean(self):
         """42 isBoolean asString print  →  'false'"""
         body = _assign(
@@ -2153,21 +2136,18 @@ class TestTypeChecks:
 
 
 class TestBooleanOperators:
-    @pytest.mark.xfail(reason="Boolean not not yet implemented")
     def test_true_not(self):
         """true not asString print  →  'false'"""
         body = _assign(1, "_", _send_print(_send_as_string(_send_msg("not", _true_literal()))))
         xml = _make_xml(body)
         assert _run(xml) == "false\n"
 
-    @pytest.mark.xfail(reason="Boolean not not yet implemented")
     def test_false_not(self):
         """false not asString print  →  'true'"""
         body = _assign(1, "_", _send_print(_send_as_string(_send_msg("not", _false_literal()))))
         xml = _make_xml(body)
         assert _run(xml) == "true\n"
 
-    @pytest.mark.xfail(reason="Boolean and: not yet implemented")
     def test_true_and_true_block(self):
         """true and: [| _ := true. ]  →  block evaluated, returns true"""
         blk = _block(0, [], _assign(1, "_", _true_literal()))
@@ -2177,7 +2157,6 @@ class TestBooleanOperators:
         xml = _make_xml(body)
         assert _run(xml) == "true\n"
 
-    @pytest.mark.xfail(reason="Boolean and: short-circuit not yet implemented")
     def test_false_and_block_not_evaluated(self):
         """false and: [block]  →  false, block never runs"""
         blk = _block(0, [], _assign(1, "_", _send_print(_str_literal("should-not-print"))))
@@ -2197,7 +2176,6 @@ class TestBooleanOperators:
         xml = _make_xml(body)
         assert _run(xml) == "true\n"
 
-    @pytest.mark.xfail(reason="Boolean or: short-circuit not yet implemented")
     def test_true_or_block_not_evaluated(self):
         """true or: [block]  →  true, block never runs"""
         blk = _block(0, [], _assign(1, "_", _send_print(_str_literal("should-not-print"))))
@@ -2291,7 +2269,6 @@ class TestWhileTrue:
 
 
 class TestTimesRepeat:
-    @pytest.mark.xfail(reason="timesRepeat: not yet implemented")
     def test_times_repeat_prints_counter(self):
         """3 timesRepeat: [ :i | i asString print. ]  →  1\\n2\\n3\\n"""
         blk = _block(1, ["i"], _assign(1, "_", _send_print(_send_as_string(_var("i")))))
@@ -2299,7 +2276,6 @@ class TestTimesRepeat:
         xml = _make_xml(body)
         assert _run(xml) == "1\n2\n3\n"
 
-    @pytest.mark.xfail(reason="timesRepeat: not yet implemented")
     def test_times_repeat_zero_does_nothing(self):
         """0 timesRepeat: [block]  →  nothing printed, returns nil"""
         blk = _block(1, ["i"], _assign(1, "_", _send_print(_str_literal("x"))))

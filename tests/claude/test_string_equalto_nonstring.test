@@ -1,0 +1,35 @@
++++ STRING
+*** Test String equalTo: s argumentem jineho typu nez String - vraci false
+!C! 0
+!I! 0
+>>> 2
+
+class Main : Object {
+    run [ |
+        s := 'hello'.
+
+        "Porovnani s cislem - vraci false"
+        r1 := s equalTo: 42.
+        _ := (r1 asString) print.
+        _ := '\n' print.
+
+        "Porovnani s nil - vraci false"
+        r2 := s equalTo: nil.
+        _ := (r2 asString) print.
+        _ := '\n' print.
+
+        "Porovnani s true - vraci false"
+        r3 := s equalTo: true.
+        _ := (r3 asString) print.
+        _ := '\n' print.
+
+        "Porovnani s jinym objektem - vraci false"
+        r4 := s equalTo: (Object new).
+        _ := (r4 asString) print.
+        _ := '\n' print.
+
+        "Spravne porovnani stejnych retezcu - vraci true"
+        r5 := s equalTo: 'hello'.
+        _ := (r5 asString) print.
+    ]
+}

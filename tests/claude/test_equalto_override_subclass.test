@@ -1,0 +1,35 @@
++++ OOP
+*** Test predefinovani equalTo: v podtride Integer - porovnani modulo 10
+!C! 0
+!I! 0
+>>> 2
+
+class ModInt : Integer {
+    "Dva ModInt objekty jsou si rovny, pokud maji stejny zbytek po deleni 10"
+    equalTo: [ :other |
+        selfMod := self minus: ((self divBy: 10) multiplyBy: 10).
+        otherMod := other minus: ((other divBy: 10) multiplyBy: 10).
+        r := selfMod equalTo: otherMod.
+    ]
+}
+
+class Main : Object {
+    run [ |
+        a := ModInt from: 13.
+        b := ModInt from: 23.
+        c := ModInt from: 17.
+
+        "13 mod 10 = 3, 23 mod 10 = 3 -> rovnaji se"
+        x := (a equalTo: b) asString. _ := x print.
+        _ := '\n' print.
+
+        "13 mod 10 = 3, 17 mod 10 = 7 -> nerovnaji se"
+        x := (a equalTo: c) asString. _ := x print.
+        _ := '\n' print.
+
+        "Zakladni Integer equalTo: stale funguje spravne"
+        x := Integer from: 5.
+        y := Integer from: 5.
+        x := (x equalTo: y) asString. _ := x print.
+    ]
+}
