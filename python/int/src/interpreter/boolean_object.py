@@ -44,7 +44,7 @@ class BooleanObject(SolObject):
         return other.sol_value()
 
     def if_true_if_false(self, true_block: SolObject, false_block: SolObject) -> SolObject:
-        """Executes true_block if condition is true — block execution handled by interpreter"""
+        """Executes true_block if condition is true, else false_block"""
 
         if not isinstance(true_block, BlockObject):
             raise InterpreterError(ErrorCode.INT_DNU)
@@ -53,8 +53,8 @@ class BooleanObject(SolObject):
             raise InterpreterError(ErrorCode.INT_DNU)
 
         if isinstance(self, TrueObject):
-            return true_block
-        return false_block
+            return true_block.sol_value()
+        return false_block.sol_value()
 
     def is_boolean(self) -> TrueObject:
         """Evaluates if object is boolean"""

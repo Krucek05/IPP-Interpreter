@@ -64,9 +64,13 @@ class BlockObject(SolObject):
                 # Convert pydantic Expr to XML element for consistent evaluation
                 expr_xml = assign.expr.to_xml_tree()
                 result = self.interpreter.evaluate_node(expr_xml)  # type: ignore[arg-type]
-                local_vars[assign.target.name] = result
-                self.interpreter.variables[assign.target.name] = result
+                var_name = assign.target.name
 
+                if var_name in [param.name for param in self.block.parameters]:
+                    raise InterpreterError(ErrorCode.SEM_COLLISION, "Cannot assign to parameter")
+
+                local_vars[var_name] = result
+                self.interpreter.variables[var_name] = result
             return result
 
         finally:

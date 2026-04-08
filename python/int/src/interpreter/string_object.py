@@ -33,6 +33,21 @@ class StringObject(SolObject):
         """Creates new empty string instance"""
         return StringObject("")
 
+    def sol_from(self, obj: SolObject) -> SolObject:
+        """Creates new String from another object"""
+        from interpreter.error_codes import ErrorCode
+        from interpreter.exceptions import InterpreterError
+        from interpreter.integer_object import IntegerObject
+
+        if isinstance(obj, StringObject):
+            return StringObject(obj.value)
+
+        if isinstance(obj, IntegerObject):
+            return StringObject(str(obj.value))
+
+        # For other types, raise error
+        raise InterpreterError(ErrorCode.INT_INVALID_ARG, "Cannot convert to string")
+
     @staticmethod
     def read() -> StringObject:
         """Reads a line of input from stdin and returns it as a StringObject"""
@@ -43,9 +58,13 @@ class StringObject(SolObject):
         print(self.value, end="")
         return self
 
-    def equal_to(self, other: SolObject) -> bool:
+    def equal_to(self, other: SolObject) -> SolObject:
         """Evaluates if two strings are equal"""
-        return bool(self.value == other.value)
+        from interpreter.boolean_object import false, true
+
+        if not isinstance(other, StringObject):
+            return false
+        return true if self.value == other.value else false
 
     def as_string(self) -> StringObject:
         """Returns string itself"""
@@ -66,21 +85,25 @@ class StringObject(SolObject):
         """Concatenates two strings together and returns the result"""
         if isinstance(other, StringObject):
             return StringObject(self.value + str(other.value))
-        return SolObject("Nil", None)
+        from interpreter.nil_object import nil
+
+        return nil
 
     def starts_with_ends_before(
         self, start: SolObject, end: SolObject
     ) -> StringObject | SolObject:
         """Evaluates if string starts with start and ends with end"""
+        from interpreter.integer_object import IntegerObject
+        from interpreter.nil_object import nil
 
-        if not isinstance(start, int) or not isinstance(end, int) or start <= 0 or end <= 0:
-            from interpreter.nil_object import nil
-
+        if not isinstance(start, IntegerObject) or not isinstance(end, IntegerObject):
             return nil
-        if end - start <= 0:
+        if start.value <= 0 or end.value <= 0:
+            return nil
+        if end.value - start.value <= 0:
             return StringObject("")
 
-        return StringObject(self.value[start - 1 : end - 1])
+        return StringObject(self.value[start.value - 1 : end.value - 1])
 
     def length(self) -> SolObject:
         """Returns length of string"""

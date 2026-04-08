@@ -22,7 +22,28 @@ class SolObject:
         """
         if self.class_name == "class":
             class_name = str(self.value)
+
+            # Handle built-in classes with special instantiation
+            if class_name == "Nil":
+                from interpreter.nil_object import nil
+
+                return nil
+            if class_name == "Integer":
+                from interpreter.integer_object import IntegerObject
+
+                return IntegerObject(0)
+            if class_name == "String":
+                from interpreter.string_object import StringObject
+
+                return StringObject("")
+            if class_name == "Block":
+                from interpreter.block_object import BlockObject
+                from interpreter.input_model import Block
+
+                empty_block = Block(arity=0, parameters=[], assigns=[])
+                return BlockObject(empty_block)
             return SolObject(class_name, None)
+
         return self
 
     def sol_from(self, obj: SolObject) -> SolObject:
@@ -32,13 +53,29 @@ class SolObject:
 
         if self.class_name == "class":
             class_name = str(self.value)
+
+            if class_name == "Integer":
+                from interpreter.integer_object import IntegerObject
+
+                int_instance: SolObject = IntegerObject(0)
+                return int_instance.sol_from(obj)
+            if class_name == "String":
+                from interpreter.string_object import StringObject
+
+                str_instance: SolObject = StringObject("")
+                return str_instance.sol_from(obj)
+            if class_name == "Nil":
+                from interpreter.nil_object import nil
+
+                return nil
+            if class_name == "Block":
+                from interpreter.block_object import BlockObject
+                from interpreter.input_model import Block
+
+                empty_block = Block(arity=0, parameters=[], assigns=[])
+                return BlockObject(empty_block)
             new_obj = SolObject(class_name, None)
-
             new_obj.instance_vars = obj.instance_vars.copy()
-
-            # Todoo: Check for required internal attributes
-            # For now, assume all are provided (error 53 check goes here)
-
             return new_obj
 
         return self
@@ -57,19 +94,24 @@ class SolObject:
         """Evaluates if two objects are identical"""
         return self is other
 
-    def equal_to(self, other: SolObject) -> bool:
+    def equal_to(self, other: SolObject) -> SolObject:
         """Evaluates if two objects are equal (have the same value)"""
+        from interpreter.boolean_object import false, true
+
         if not self.instance_vars:
-            return self.identical_to(other)
+            return true if self.identical_to(other) else false
 
         if set(self.instance_vars.keys()) != set(other.instance_vars.keys()):
-            return False
+            return false
 
         for key in self.instance_vars:
-            if not self.instance_vars[key].equal_to(other.instance_vars[key]):
-                return False
+            other_result = self.instance_vars[key].equal_to(other.instance_vars[key])
+            from interpreter.boolean_object import TrueObject
 
-        return True
+            if not isinstance(other_result, TrueObject):
+                return false
+
+        return true
 
     def is_number(self) -> SolObject:
         """Evaluates if object is number"""

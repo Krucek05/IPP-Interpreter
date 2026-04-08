@@ -24,9 +24,30 @@ class IntegerObject(SolObject):
         """Creates new integer instance"""
         return IntegerObject(0)
 
-    def equal_to(self, other: SolObject) -> bool:
+    def sol_from(self, obj: SolObject) -> SolObject:
+        """Creates new Integer from another object"""
+        from interpreter.string_object import StringObject
+
+        if isinstance(obj, IntegerObject):
+            return IntegerObject(obj.value)
+
+        if isinstance(obj, StringObject):
+            try:
+                return IntegerObject(int(obj.value))
+            except ValueError as err:
+                raise InterpreterError(
+                    ErrorCode.INT_INVALID_ARG, "Cannot convert to integer"
+                ) from err
+
+        raise InterpreterError(ErrorCode.INT_INVALID_ARG, "Incompatible type")
+
+    def equal_to(self, other: SolObject) -> SolObject:
         """Evaluates if data of two objects are same"""
-        return bool(self.value == other.value)
+        from interpreter.boolean_object import false, true
+
+        if not isinstance(other, IntegerObject):
+            return false
+        return true if self.value == other.value else false
 
     def greater_than(self, other: SolObject) -> SolObject:
         """Evaluates if this integer is greater than other"""
@@ -86,8 +107,8 @@ class IntegerObject(SolObject):
         if self.value <= 0:
             return nil
 
-        last_result = nil
+        last_result: SolObject = nil
         for _ in range(1, self.value + 1):
-            last_result = block.sol_value()  # type: ignore[assignment]
+            last_result = block.sol_value()
 
         return last_result
