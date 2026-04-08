@@ -70,6 +70,12 @@ class StringObject(SolObject):
         """Returns string itself"""
         return self
 
+    def is_string(self) -> SolObject:
+        """Evaluates if object is string"""
+        from interpreter.boolean_object import true
+
+        return true
+
     def as_integer(self) -> SolObject:
         """Converts string to integer and returns it"""
         from interpreter.integer_object import IntegerObject

@@ -93,6 +93,12 @@ class IntegerObject(SolObject):
         """Returns integer itself"""
         return self
 
+    def is_number(self) -> SolObject:
+        """Evaluates if object is number"""
+        from interpreter.boolean_object import true
+
+        return true
+
     def times_repeated(self, block: SolObject) -> SolObject:
         """Executes block number of times — block execution handled by interpreter"""
         from interpreter.block_object import BlockObject
