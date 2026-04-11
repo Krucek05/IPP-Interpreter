@@ -36,27 +36,23 @@ RUN npm install -g \
     prettier@3.7.* \
     typescript@5.*
 
-# Set environment variables for mounted paths
-ENV INT_DIR=/src/int
-ENV TESTER_DIR=/src/tester
+# Create wrapper scripts in /src/int for Python tools
+RUN mkdir -p /src/int && \
+    echo '#!/bin/bash' > /src/int/ruff && \
+    echo 'exec ruff "$@"' >> /src/int/ruff && \
+    chmod +x /src/int/ruff && \
+    echo '#!/bin/bash' > /src/int/mypy && \
+    echo 'exec mypy "$@"' >> /src/int/mypy && \
+    chmod +x /src/int/mypy
 
-# Create wrapper scripts for tools (allow ./ruff, ./mypy, etc. with arguments)
-RUN mkdir -p /usr/local/bin/wrappers && \
-    echo '#!/bin/bash' > /usr/local/bin/wrappers/ruff && \
-    echo 'exec ruff "$@"' >> /usr/local/bin/wrappers/ruff && \
-    chmod +x /usr/local/bin/wrappers/ruff && \
-    echo '#!/bin/bash' > /usr/local/bin/wrappers/mypy && \
-    echo 'exec mypy "$@"' >> /usr/local/bin/wrappers/mypy && \
-    chmod +x /usr/local/bin/wrappers/mypy && \
-    echo '#!/bin/bash' > /usr/local/bin/wrappers/eslint && \
-    echo 'exec eslint "$@"' >> /usr/local/bin/wrappers/eslint && \
-    chmod +x /usr/local/bin/wrappers/eslint && \
-    echo '#!/bin/bash' > /usr/local/bin/wrappers/prettier && \
-    echo 'exec prettier "$@"' >> /usr/local/bin/wrappers/prettier && \
-    chmod +x /usr/local/bin/wrappers/prettier
-
-# Add wrappers to PATH
-ENV PATH=/usr/local/bin/wrappers:$PATH
+# Create wrapper scripts in /src/tester for TypeScript tools
+RUN mkdir -p /src/tester && \
+    echo '#!/bin/bash' > /src/tester/eslint && \
+    echo 'exec eslint "$@"' >> /src/tester/eslint && \
+    chmod +x /src/tester/eslint && \
+    echo '#!/bin/bash' > /src/tester/prettier && \
+    echo 'exec prettier "$@"' >> /src/tester/prettier && \
+    chmod +x /src/tester/prettier
 
 # Entry point: bash shell for interactive checking
 ENTRYPOINT ["/bin/bash"]

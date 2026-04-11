@@ -5,7 +5,9 @@ Author: Kristian Rucek xrucekk00
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
+
+from lxml import etree
 
 from interpreter.error_codes import ErrorCode
 from interpreter.exceptions import InterpreterError
@@ -51,10 +53,10 @@ class BlockObject(SolObject):
 
         saved_vars = self.interpreter.variables.copy()
 
-        # Start with a new scope that inherits from outer scope
+        # Start with a new scope
         local_vars: dict[str, SolObject] = saved_vars.copy()
 
-        # Restore the captured self (lexical closure - self from creation time, not execution time)
+        # Restore the captured self
         if self.captured_self is not None:
             local_vars["self"] = self.captured_self
 
@@ -62,16 +64,14 @@ class BlockObject(SolObject):
         for i, param in enumerate(self.block.parameters):
             local_vars[param.name] = args[i]
 
-        # Set interpreter to use local scope
         self.interpreter.variables = local_vars
 
         try:
-            # Execute all statements
             result: SolObject = nil
             for assign in sorted(self.block.assigns, key=lambda a: int(a.order)):
-                # Convert pydantic Expr to XML element for consistent evaluation
                 expr_xml = assign.expr.to_xml_tree()
-                result = self.interpreter.evaluate_node(expr_xml)  # type: ignore[arg-type]
+                casted_expr_xml = cast(etree._Element, expr_xml)
+                result = self.interpreter.evaluate_node(casted_expr_xml)
                 var_name = assign.target.name
 
                 if var_name in [param.name for param in self.block.parameters]:
@@ -83,7 +83,6 @@ class BlockObject(SolObject):
 
         finally:
             # Update outer scope with any changes made in block
-            # (except parameter names which are local to the block)
             param_names = {param.name for param in self.block.parameters}
             for var_name, var_value in self.interpreter.variables.items():
                 if var_name not in param_names and var_name != "self":

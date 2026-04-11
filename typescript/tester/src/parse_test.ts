@@ -1,4 +1,10 @@
-// parse .test file headers to get test metadata
+/**
+ * IPP projekt Tester
+ * Autor : Kristian Rucek (xrucekk00)
+ * VUT FIT 2026
+ */
+
+// Parse .test file headers to get test metadata
 
 import { promises as fs } from "node:fs";
 import {
@@ -23,7 +29,7 @@ export function buildTestCase(
   file: TestCaseDefinitionFile,
   metadata: metadata
 ): TestCaseDefinition {
-  const testType = determineTestType(metadata.parserExitCodes, metadata.interpreterExitCodes);
+  const testType = findTestType(metadata.parserExitCodes, metadata.interpreterExitCodes);
 
   return new TestCaseDefinition({
     name: file.name,
@@ -58,15 +64,12 @@ export async function parseTestMetadata(
     if (line.startsWith("+++")) {
       metadata.category = line.replace("+++", "").trim();
     } else if (line.startsWith("!C!")) {
-      const codes = parseNumbers(line);
-      metadata.parserExitCodes = metadata.parserExitCodes
-        ? [...metadata.parserExitCodes, ...codes]
-        : codes;
+      metadata.parserExitCodes = addExitCodes(metadata.parserExitCodes, parseNumbers(line));
     } else if (line.startsWith("!I!")) {
-      const codes = parseNumbers(line);
-      metadata.interpreterExitCodes = metadata.interpreterExitCodes
-        ? [...metadata.interpreterExitCodes, ...codes]
-        : codes;
+      metadata.interpreterExitCodes = addExitCodes(
+        metadata.interpreterExitCodes,
+        parseNumbers(line)
+      );
     } else if (line.startsWith(">>>")) {
       metadata.points = parseInt(line.replace(">>>", "").trim());
     } else if (line.startsWith("***")) {
@@ -93,15 +96,20 @@ function parseNumbers(line: string): number[] {
     .map((n) => parseInt(n.trim()));
 }
 
+// Helper to add to arrays
+function addExitCodes(current: number[] | null | undefined, newCodes: number[]): number[] {
+  return current ? [...current, ...newCodes] : newCodes;
+}
+
 // figure out test type from what codes are set
-function determineTestType(
+function findTestType(
   parser: number[] | null | undefined,
-  interp: number[] | null | undefined
+  interpreter: number[] | null | undefined
 ): TestCaseType {
   const hasParser = parser && parser.length > 0;
-  const hasInterp = interp && interp.length > 0;
+  const hasInterpreter = interpreter && interpreter.length > 0;
 
-  if (hasParser && !hasInterp) return TestCaseType.PARSE_ONLY;
-  if (!hasParser && hasInterp) return TestCaseType.EXECUTE_ONLY;
+  if (hasParser && !hasInterpreter) return TestCaseType.PARSE_ONLY;
+  if (!hasParser && hasInterpreter) return TestCaseType.EXECUTE_ONLY;
   return TestCaseType.COMBINED;
 }

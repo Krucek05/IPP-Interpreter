@@ -1,24 +1,13 @@
 #!/usr/bin/env node
 /**
- * An integration testing script for the SOL26 interpreter.
- *
- * IPP: You can implement the entire tool in this file if you wish, but it is recommended to split
- *      the code into multiple files and modules as you see fit.
- *
- *      Below, you have some code to get you started with the CLI argument parsing and logging setup,
- *      but you are **free to modify it** in whatever way you like.
- *
- * Author: Ondřej Ondryáš <iondryas@fit.vut.cz>
- *
- * AI usage notice: The author used OpenAI Codex to create the implementation of this
- *                  module based on its Python counterpart.
+ * IPP projekt Tester
+ * Autor : Kristian Rucek (xrucekk00)
+ * VUT FIT 2026
  */
 
 import { existsSync, lstatSync, writeFileSync, promises as fs } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { parseArgs } from "node:util";
-
-import { spawn } from "node:child_process";
 
 import {
   TestReport,
@@ -30,31 +19,19 @@ import {
   UnexecutedReason,
   UnexecutedReasonCode,
 } from "./models.js";
-import { findTests } from "./tests_finder.js";
+import { findAllTestFiles } from "./tests_finder.js";
+import { runParser, runInterpreter } from "./execute_run.js";
 import { parseTestMetadata, buildTestCase } from "./parse_test.js";
+import { applyFilters, handleDryRun } from "./filters.js";
 
 import { pino } from "pino";
-
-interface ProcessResult {
-  stdout: string;
-  stderr: string;
-  exitCode: number;
-}
 
 interface TestExecutionOutcome {
   report: TestCaseReport;
   passed: boolean;
 }
 
-function getErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
-}
-
-function chunkToString(chunk: Buffer | string): string {
-  return typeof chunk === "string" ? chunk : chunk.toString();
-}
-
-const logger = pino({
+export const logger = pino({
   transport: {
     target: "pino-pretty",
     options: {
@@ -64,7 +41,7 @@ const logger = pino({
   },
 });
 
-interface CliArguments {
+export interface CliArguments {
   tests_dir: string;
   recursive: boolean;
   output: string | null;
@@ -79,7 +56,7 @@ interface CliArguments {
   regex_filters: boolean;
 }
 
-function writeResult(resultReport: TestReport, outputFile: string | null): void {
+function printResult(resultReport: TestReport, outputFile: string | null): void {
   /**
    * Writes the final report to the specified output file or standard output if no file is provided.
    */
@@ -228,133 +205,7 @@ function parseArguments(): CliArguments {
   return args;
 }
 
-async function runParser(inputFile: string): Promise<ProcessResult> {
-  try {
-    // Extract SOL code from .test file (skip metadata headers)
-    const content = await fs.readFile(inputFile, "utf-8");
-    const lines = content.split("\n");
-
-    let codeStartIndex = 0;
-    for (let i = 0; i < lines.length; i++) {
-      if (lines[i]?.trim() === "") {
-        codeStartIndex = i + 1;
-        break;
-      }
-    }
-
-    const solCode = lines.slice(codeStartIndex).join("\n");
-
-    return await new Promise<ProcessResult>((resolve) => {
-      let stdout = "";
-      let stderr = "";
-
-      const proc = spawn("python", ["/IPP_Projekt/sol2xml/sol_to_xml.py", "-"]);
-
-      proc.stdout.on("data", (data: Buffer | string) => {
-        stdout += chunkToString(data);
-      });
-
-      proc.stderr.on("data", (data: Buffer | string) => {
-        stderr += chunkToString(data);
-      });
-
-      proc.on("error", (error: Error) => {
-        resolve({
-          stdout,
-          stderr: error.message,
-          exitCode: 1,
-        });
-      });
-
-      proc.on("close", (exitCode) => {
-        resolve({
-          stdout,
-          stderr,
-          exitCode: exitCode ?? 1,
-        });
-      });
-
-      proc.stdin.write(solCode);
-      proc.stdin.end();
-    });
-  } catch (error: unknown) {
-    return {
-      stdout: "",
-      stderr: getErrorMessage(error),
-      exitCode: 1,
-    };
-  }
-}
-
-// Run interpreter with XML file path
-async function runInterpreter(xmlContent: string, stdinFile?: string): Promise<ProcessResult> {
-  try {
-    // Write XML to temp file
-    const tempXmlFile = `/tmp/soltest_${String(Date.now())}.xml`;
-    await fs.writeFile(tempXmlFile, xmlContent, "utf-8");
-
-    let stdinContent: string | null = null;
-    if (stdinFile) {
-      try {
-        stdinContent = await fs.readFile(stdinFile, "utf-8");
-      } catch {
-        stdinContent = null;
-      }
-    }
-
-    return await new Promise<ProcessResult>((resolve) => {
-      const args = ["/IPP_Projekt/int/src/solint.py", "-s", tempXmlFile];
-      if (stdinFile) {
-        args.push("-i", stdinFile);
-      }
-
-      let stdout = "";
-      let stderr = "";
-      const proc = spawn("python", args);
-
-      proc.stdout.on("data", (data: Buffer | string) => {
-        stdout += chunkToString(data);
-      });
-
-      proc.stderr.on("data", (data: Buffer | string) => {
-        stderr += chunkToString(data);
-      });
-
-      proc.on("error", (error: Error) => {
-        void fs.unlink(tempXmlFile).catch(() => {});
-        resolve({
-          stdout,
-          stderr: error.message,
-          exitCode: 1,
-        });
-      });
-
-      proc.on("close", (exitCode) => {
-        // Clean up temp file
-        void fs.unlink(tempXmlFile).catch(() => {});
-
-        resolve({
-          stdout,
-          stderr,
-          exitCode: exitCode ?? 1,
-        });
-      });
-
-      if (stdinContent !== null) {
-        proc.stdin.write(stdinContent);
-      }
-      proc.stdin.end();
-    });
-  } catch (error: unknown) {
-    return {
-      stdout: "",
-      stderr: getErrorMessage(error),
-      exitCode: 1,
-    };
-  }
-}
-
-// Compares expected file content with actual output. Used for output validation.
+// Compares expected file content with actual output
 async function getDiff(expectedFile: string, actualOutput: string): Promise<string> {
   try {
     const expectedContent = await fs.readFile(expectedFile, "utf-8");
@@ -369,7 +220,7 @@ async function getDiff(expectedFile: string, actualOutput: string): Promise<stri
 }
 
 async function executeParseOnlyTest(testCase: TestCaseDefinition): Promise<TestExecutionOutcome> {
-  // Run only sol2xml parser
+  // Run only sol_to_xml parser
   logger.debug("Running parser only");
   const { stdout, stderr, exitCode } = await runParser(testCase.test_source_path);
   logger.debug("Parser exited with code %d", exitCode);
@@ -389,6 +240,42 @@ async function executeParseOnlyTest(testCase: TestCaseDefinition): Promise<TestE
     ),
     passed: parserPassed,
   };
+}
+
+// Validates interpreter execution and compares output with expected file
+async function validateInterpreterResult(
+  testCase: TestCaseDefinition,
+  interpreterResult: { stdout: string; stderr: string; exitCode: number },
+  parserResult?: { stdout: string; stderr: string; exitCode: number }
+): Promise<TestCaseReport> {
+  const interpreterPassed =
+    testCase.expected_interpreter_exit_codes?.includes(interpreterResult.exitCode) ?? false;
+
+  let diffOutput: string | null = null;
+  let testPassed = interpreterPassed;
+
+  if (interpreterPassed && testCase.expected_stdout_file) {
+    const expectedOutputContent = await fs.readFile(testCase.expected_stdout_file, "utf-8");
+    if (interpreterResult.stdout !== expectedOutputContent) {
+      diffOutput = await getDiff(testCase.expected_stdout_file, interpreterResult.stdout);
+      testPassed = false;
+    }
+  }
+
+  return new TestCaseReport(
+    testPassed
+      ? TestResult.PASSED
+      : diffOutput
+        ? TestResult.INTERPRETER_RESULT_DIFFERS
+        : TestResult.UNEXPECTED_INTERPRETER_EXIT_CODE,
+    parserResult?.exitCode ?? null,
+    interpreterResult.exitCode,
+    parserResult?.stdout ?? null,
+    parserResult?.stderr ?? null,
+    interpreterResult.stdout,
+    interpreterResult.stderr,
+    diffOutput
+  );
 }
 
 async function executeRunThroughInterpreter(
@@ -438,43 +325,7 @@ async function executeTestCase(testCase: TestCaseDefinition): Promise<TestExecut
   return executeRunThroughInterpreter(testCase, true);
 }
 
-// Validates interpreter execution and compares output with expected file
-async function validateInterpreterResult(
-  testCase: TestCaseDefinition,
-  interpreterResult: { stdout: string; stderr: string; exitCode: number },
-  parserResult?: { stdout: string; stderr: string; exitCode: number }
-): Promise<TestCaseReport> {
-  const interpreterPassed =
-    testCase.expected_interpreter_exit_codes?.includes(interpreterResult.exitCode) ?? false;
-
-  let diffOutput: string | null = null;
-  let testPassed = interpreterPassed;
-
-  if (interpreterPassed && testCase.expected_stdout_file) {
-    const expectedOutputContent = await fs.readFile(testCase.expected_stdout_file, "utf-8");
-    if (interpreterResult.stdout !== expectedOutputContent) {
-      diffOutput = await getDiff(testCase.expected_stdout_file, interpreterResult.stdout);
-      testPassed = false;
-    }
-  }
-
-  return new TestCaseReport(
-    testPassed
-      ? TestResult.PASSED
-      : diffOutput
-        ? TestResult.INTERPRETER_RESULT_DIFFERS
-        : TestResult.UNEXPECTED_INTERPRETER_EXIT_CODE,
-    parserResult?.exitCode ?? null,
-    interpreterResult.exitCode,
-    parserResult?.stdout ?? null,
-    parserResult?.stderr ?? null,
-    interpreterResult.stdout,
-    interpreterResult.stderr,
-    diffOutput
-  );
-}
-
-async function runTests(
+async function runTestSuite(
   _testCases: TestCaseDefinition[],
   unexecutedCases: Record<string, UnexecutedReason> = {}
 ): Promise<Record<string, CategoryReport>> {
@@ -539,76 +390,6 @@ async function runTests(
   return results;
 }
 
-function applyIncludeFilters(
-  testCases: TestCaseDefinition[],
-  args: CliArguments,
-  unexecutedCases: Record<string, UnexecutedReason>
-): void {
-  if (args.include || args.include_category || args.include_test) {
-    for (const testCase of testCases) {
-      if (
-        (args.include &&
-          !args.include.includes(testCase.name) &&
-          !args.include.includes(testCase.category)) ||
-        (args.include_category && !args.include_category.includes(testCase.category)) ||
-        (args.include_test && !args.include_test.includes(testCase.name))
-      ) {
-        logger.debug("Exclude test case '%s' due to include filters", testCase.name);
-        unexecutedCases[testCase.name] = new UnexecutedReason(
-          UnexecutedReasonCode.FILTERED_OUT,
-          "Test case excluded by include filters"
-        );
-      }
-    }
-  }
-}
-
-function applyExcludeFilters(
-  testCases: TestCaseDefinition[],
-  args: CliArguments,
-  unexecutedCases: Record<string, UnexecutedReason>
-): void {
-  if (args.exclude || args.exclude_category || args.exclude_test) {
-    for (const testCase of testCases) {
-      if (
-        (args.exclude && args.exclude.includes(testCase.name)) ||
-        (args.exclude_category && args.exclude_category.includes(testCase.category)) ||
-        (args.exclude_test && args.exclude_test.includes(testCase.name))
-      ) {
-        logger.debug("Excluding test case '%s' due to exclude filters", testCase.name);
-        unexecutedCases[testCase.name] = new UnexecutedReason(
-          UnexecutedReasonCode.FILTERED_OUT,
-          "Test case excluded by exclude filters"
-        );
-      }
-    }
-  }
-}
-
-function applyFilters(
-  testCases: TestCaseDefinition[],
-  args: CliArguments,
-  unexecutedCases: Record<string, UnexecutedReason>
-): void {
-  applyIncludeFilters(testCases, args, unexecutedCases);
-  applyExcludeFilters(testCases, args, unexecutedCases);
-}
-
-function handleDryRun(
-  testCases: TestCaseDefinition[],
-  unexecutedCases: Record<string, UnexecutedReason>,
-  args: CliArguments
-): void {
-  logger.info("Dry run enabled, skipping test execution.");
-  const emptyResults: Record<string, CategoryReport> = {};
-  const report = new TestReport({
-    discovered_test_cases: testCases,
-    unexecuted: unexecutedCases,
-    results: emptyResults,
-  });
-  writeResult(report, args.output);
-}
-
 async function main(): Promise<void> {
   /**
    * The main entry point for the SOL26 integration testing script.
@@ -629,7 +410,7 @@ async function main(): Promise<void> {
   } else if (args.verbose === 1) {
     logger.level = "info";
   }
-  const discoveredTests = await findTests(args.tests_dir, args.recursive);
+  const discoveredTests = await findAllTestFiles(args.tests_dir, args.recursive);
   logger.info(`Found ${String(discoveredTests.length)} test files`);
 
   // parse each test file and build test cases
@@ -653,14 +434,14 @@ async function main(): Promise<void> {
   }
 
   // Execute tests and get results
-  const testResults = await runTests(testCases, unexecutedCases);
+  const testResults = await runTestSuite(testCases, unexecutedCases);
 
   const report = new TestReport({
     discovered_test_cases: foundTestCases,
     unexecuted: unexecutedCases,
     results: testResults,
   });
-  writeResult(report, args.output);
+  printResult(report, args.output);
 }
 
 void main();

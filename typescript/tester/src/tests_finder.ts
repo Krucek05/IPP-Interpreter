@@ -1,4 +1,10 @@
-// finds all test files (.test, .in, .out) in a folder
+/**
+ * IPP projekt Tester
+ * Autor : Kristian Rucek (xrucekk00)
+ * VUT FIT 2026
+ */
+
+// Finds all test files (.test, .in, .out) in a folder
 
 import { promises as fs } from "node:fs";
 import { join, extname, basename } from "node:path";
@@ -12,11 +18,11 @@ interface TestFile {
 }
 
 // looks for all .test, .in, .out files and groups them together
-export async function findTests(
+export async function findAllTestFiles(
   test_dir: string,
   recursive: boolean
 ): Promise<TestCaseDefinitionFile[]> {
-  const tests = new Map<string, TestFile>();
+  const test_file = new Map<string, TestFile>();
 
   async function searchFolder(dir: string): Promise<void> {
     const files = await fs.readdir(dir, { withFileTypes: true });
@@ -36,13 +42,13 @@ export async function findTests(
 
       const fileName = basename(file.name, fileExt);
 
-      let testInfo = tests.get(fileName);
+      let testInfo = test_file.get(fileName);
       if (!testInfo) {
         testInfo = {
           name: fileName,
           testPath: "",
         };
-        tests.set(fileName, testInfo);
+        test_file.set(fileName, testInfo);
       }
       if (fileExt === ".test") testInfo.testPath = path;
       else if (fileExt === ".in") testInfo.inPath = path;
@@ -52,7 +58,7 @@ export async function findTests(
 
   await searchFolder(test_dir);
 
-  return Array.from(tests.values())
+  return Array.from(test_file.values())
     .filter((t) => t.testPath)
     .map(
       (t) =>

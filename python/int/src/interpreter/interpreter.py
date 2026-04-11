@@ -9,7 +9,7 @@ Author: Kristian Rucek xrucekk00
 
 import logging
 from pathlib import Path
-from typing import TextIO
+from typing import Any, TextIO, cast
 
 from lxml import etree
 from lxml.etree import ParseError
@@ -105,7 +105,7 @@ class Interpreter:
             # Parse XML block element back to pydantic Block model
             from interpreter.input_model import Block
 
-            block_model = Block.from_xml_tree(node)  # type: ignore[arg-type]
+            block_model = Block.from_xml_tree(cast(Any, node))
             block_obj = BlockObject(block_model)
             block_obj.interpreter = self
             # Capture the current self at block creation time (lexical closure)
@@ -199,7 +199,7 @@ class Interpreter:
 
         return None
 
-    def dispatching(self, sender: etree._Element) -> SolObject:
+    def dispatching(self, sender: etree._Element) -> SolObject | Any:
         """Dispatches message to appropriate handler based on selector"""
         selector = sender.get("selector")
 
@@ -322,7 +322,7 @@ class Interpreter:
         }
 
         if selector in handlers:
-            return handlers[selector](output, sender)  # type: ignore[no-any-return]
+            return handlers[selector](output, sender)
 
         attr_result = self._handle_attribute_access(output, selector or "", sender)
         if attr_result is not None:
@@ -653,7 +653,8 @@ class Interpreter:
             result: SolObject = nil
             for assign in method.block.assigns:
                 expr_xml = assign.expr.to_xml_tree()
-                result = self.evaluate_node(expr_xml)  # type: ignore[arg-type]
+                casted_expr_xml = cast(etree._Element, expr_xml)
+                result = self.evaluate_node(casted_expr_xml)
 
                 var_name = assign.target.name
 
