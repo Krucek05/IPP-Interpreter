@@ -79,7 +79,7 @@ RUN cd /IPP_Projekt/int && pip install --no-cache-dir -r requirements.txt
 # Install sol2xml parser dependencies
 RUN cd /IPP_Projekt/sol2xml && pip install --no-cache-dir -r requirements.txt
 
-# Compile TypeScript 
+# Compile TypeScript
 RUN cd /IPP_Projekt/tester && npm ci && tsc --project tsconfig.json
 
 # ============================================================================
@@ -135,5 +135,3 @@ WORKDIR /IPP_Projekt/tester
 
 # Entry point: run tester with arguments passed through
 ENTRYPOINT ["node", "dist/tester.js"]
-
-

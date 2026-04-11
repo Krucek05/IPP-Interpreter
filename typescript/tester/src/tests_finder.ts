@@ -54,7 +54,9 @@ export async function findTests(
 
   return Array.from(tests.values())
     .filter((t) => t.testPath)
-    .map((t) => new TestCaseDefinitionFile({
+    .map(
+      (t) =>
+        new TestCaseDefinitionFile({
           name: t.name,
           test_source_path: t.testPath,
           stdin_file: t.inPath || null,

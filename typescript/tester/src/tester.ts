@@ -14,13 +14,45 @@
  *                  module based on its Python counterpart.
  */
 
-import { existsSync, lstatSync, writeFileSync } from "node:fs";
+import { existsSync, lstatSync, writeFileSync, promises as fs } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { parseArgs } from "node:util";
 
-import { TestReport } from "./models.js";
+import { spawn } from "node:child_process";
+
+import {
+  TestReport,
+  TestCaseDefinition,
+  CategoryReport,
+  TestCaseType,
+  TestCaseReport,
+  TestResult,
+  UnexecutedReason,
+  UnexecutedReasonCode,
+} from "./models.js";
+import { findTests } from "./tests_finder.js";
+import { parseTestMetadata, buildTestCase } from "./parse_test.js";
 
 import { pino } from "pino";
+
+interface ProcessResult {
+  stdout: string;
+  stderr: string;
+  exitCode: number;
+}
+
+interface TestExecutionOutcome {
+  report: TestCaseReport;
+  passed: boolean;
+}
+
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function chunkToString(chunk: Buffer | string): string {
+  return typeof chunk === "string" ? chunk : chunk.toString();
+}
 
 const logger = pino({
   transport: {
@@ -196,7 +228,388 @@ function parseArguments(): CliArguments {
   return args;
 }
 
-function main(): void {
+async function runParser(inputFile: string): Promise<ProcessResult> {
+  try {
+    // Extract SOL code from .test file (skip metadata headers)
+    const content = await fs.readFile(inputFile, "utf-8");
+    const lines = content.split("\n");
+
+    let codeStartIndex = 0;
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i]?.trim() === "") {
+        codeStartIndex = i + 1;
+        break;
+      }
+    }
+
+    const solCode = lines.slice(codeStartIndex).join("\n");
+
+    return await new Promise<ProcessResult>((resolve) => {
+      let stdout = "";
+      let stderr = "";
+
+      const proc = spawn("python", ["/IPP_Projekt/sol2xml/sol_to_xml.py", "-"]);
+
+      proc.stdout.on("data", (data: Buffer | string) => {
+        stdout += chunkToString(data);
+      });
+
+      proc.stderr.on("data", (data: Buffer | string) => {
+        stderr += chunkToString(data);
+      });
+
+      proc.on("error", (error: Error) => {
+        resolve({
+          stdout,
+          stderr: error.message,
+          exitCode: 1,
+        });
+      });
+
+      proc.on("close", (exitCode) => {
+        resolve({
+          stdout,
+          stderr,
+          exitCode: exitCode ?? 1,
+        });
+      });
+
+      proc.stdin.write(solCode);
+      proc.stdin.end();
+    });
+  } catch (error: unknown) {
+    return {
+      stdout: "",
+      stderr: getErrorMessage(error),
+      exitCode: 1,
+    };
+  }
+}
+
+// Run interpreter with XML file path
+async function runInterpreter(xmlContent: string, stdinFile?: string): Promise<ProcessResult> {
+  try {
+    // Write XML to temp file
+    const tempXmlFile = `/tmp/soltest_${String(Date.now())}.xml`;
+    await fs.writeFile(tempXmlFile, xmlContent, "utf-8");
+
+    let stdinContent: string | null = null;
+    if (stdinFile) {
+      try {
+        stdinContent = await fs.readFile(stdinFile, "utf-8");
+      } catch {
+        stdinContent = null;
+      }
+    }
+
+    return await new Promise<ProcessResult>((resolve) => {
+      const args = ["/IPP_Projekt/int/src/solint.py", "-s", tempXmlFile];
+      if (stdinFile) {
+        args.push("-i", stdinFile);
+      }
+
+      let stdout = "";
+      let stderr = "";
+      const proc = spawn("python", args);
+
+      proc.stdout.on("data", (data: Buffer | string) => {
+        stdout += chunkToString(data);
+      });
+
+      proc.stderr.on("data", (data: Buffer | string) => {
+        stderr += chunkToString(data);
+      });
+
+      proc.on("error", (error: Error) => {
+        void fs.unlink(tempXmlFile).catch(() => {});
+        resolve({
+          stdout,
+          stderr: error.message,
+          exitCode: 1,
+        });
+      });
+
+      proc.on("close", (exitCode) => {
+        // Clean up temp file
+        void fs.unlink(tempXmlFile).catch(() => {});
+
+        resolve({
+          stdout,
+          stderr,
+          exitCode: exitCode ?? 1,
+        });
+      });
+
+      if (stdinContent !== null) {
+        proc.stdin.write(stdinContent);
+      }
+      proc.stdin.end();
+    });
+  } catch (error: unknown) {
+    return {
+      stdout: "",
+      stderr: getErrorMessage(error),
+      exitCode: 1,
+    };
+  }
+}
+
+// Compares expected file content with actual output. Used for output validation.
+async function getDiff(expectedFile: string, actualOutput: string): Promise<string> {
+  try {
+    const expectedContent = await fs.readFile(expectedFile, "utf-8");
+    if (expectedContent === actualOutput) {
+      return "";
+    }
+    // Simple diff output
+    return `Expected:\n${expectedContent}\n---\nActual:\n${actualOutput}`;
+  } catch {
+    return "Error generating diff";
+  }
+}
+
+async function executeParseOnlyTest(testCase: TestCaseDefinition): Promise<TestExecutionOutcome> {
+  // Run only sol2xml parser
+  logger.debug("Running parser only");
+  const { stdout, stderr, exitCode } = await runParser(testCase.test_source_path);
+  logger.debug("Parser exited with code %d", exitCode);
+  logger.debug("Parser stdout: %s", stdout);
+  logger.debug("Parser stderr: %s", stderr);
+
+  const parserPassed = testCase.expected_parser_exit_codes?.includes(exitCode) ?? false;
+  logger.debug("Parser exit code check: %s", parserPassed);
+
+  return {
+    report: new TestCaseReport(
+      parserPassed ? TestResult.PASSED : TestResult.UNEXPECTED_PARSER_EXIT_CODE,
+      exitCode,
+      null,
+      stdout,
+      stderr
+    ),
+    passed: parserPassed,
+  };
+}
+
+async function executeRunThroughInterpreter(
+  testCase: TestCaseDefinition,
+  includeParserOutput: boolean
+): Promise<TestExecutionOutcome> {
+  const parserResult = await runParser(testCase.test_source_path);
+  const parserPassed =
+    testCase.expected_parser_exit_codes?.includes(parserResult.exitCode) ?? false;
+
+  if (!parserPassed) {
+    return {
+      report: new TestCaseReport(
+        TestResult.UNEXPECTED_PARSER_EXIT_CODE,
+        parserResult.exitCode,
+        null,
+        includeParserOutput ? parserResult.stdout : null,
+        includeParserOutput ? parserResult.stderr : null
+      ),
+      passed: false,
+    };
+  }
+
+  const interpreterResult = await runInterpreter(
+    parserResult.stdout,
+    testCase.stdin_file ?? undefined
+  );
+  const report = includeParserOutput
+    ? await validateInterpreterResult(testCase, interpreterResult, parserResult)
+    : await validateInterpreterResult(testCase, interpreterResult);
+
+  return {
+    report,
+    passed: report.result === TestResult.PASSED,
+  };
+}
+
+async function executeTestCase(testCase: TestCaseDefinition): Promise<TestExecutionOutcome> {
+  if (testCase.test_type === TestCaseType.PARSE_ONLY) {
+    return executeParseOnlyTest(testCase);
+  }
+
+  if (testCase.test_type === TestCaseType.EXECUTE_ONLY) {
+    return executeRunThroughInterpreter(testCase, false);
+  }
+
+  return executeRunThroughInterpreter(testCase, true);
+}
+
+// Validates interpreter execution and compares output with expected file
+async function validateInterpreterResult(
+  testCase: TestCaseDefinition,
+  interpreterResult: { stdout: string; stderr: string; exitCode: number },
+  parserResult?: { stdout: string; stderr: string; exitCode: number }
+): Promise<TestCaseReport> {
+  const interpreterPassed =
+    testCase.expected_interpreter_exit_codes?.includes(interpreterResult.exitCode) ?? false;
+
+  let diffOutput: string | null = null;
+  let testPassed = interpreterPassed;
+
+  if (interpreterPassed && testCase.expected_stdout_file) {
+    const expectedOutputContent = await fs.readFile(testCase.expected_stdout_file, "utf-8");
+    if (interpreterResult.stdout !== expectedOutputContent) {
+      diffOutput = await getDiff(testCase.expected_stdout_file, interpreterResult.stdout);
+      testPassed = false;
+    }
+  }
+
+  return new TestCaseReport(
+    testPassed
+      ? TestResult.PASSED
+      : diffOutput
+        ? TestResult.INTERPRETER_RESULT_DIFFERS
+        : TestResult.UNEXPECTED_INTERPRETER_EXIT_CODE,
+    parserResult?.exitCode ?? null,
+    interpreterResult.exitCode,
+    parserResult?.stdout ?? null,
+    parserResult?.stderr ?? null,
+    interpreterResult.stdout,
+    interpreterResult.stderr,
+    diffOutput
+  );
+}
+
+async function runTests(
+  _testCases: TestCaseDefinition[],
+  unexecutedCases: Record<string, UnexecutedReason> = {}
+): Promise<Record<string, CategoryReport>> {
+  const categoryData: Record<
+    string,
+    {
+      total_points: number;
+      passed_points: number;
+      test_results: Record<string, TestCaseReport>;
+    }
+  > = {};
+
+  for (const testCase of _testCases) {
+    // Skip tests that are marked as unexecuted (filtered out, etc.)
+    if (unexecutedCases[testCase.name]) {
+      logger.debug("Skipping test case '%s' (already marked unexecuted)", testCase.name);
+      continue;
+    }
+
+    logger.debug("Executing test case: %s", testCase.name);
+
+    let category = categoryData[testCase.category];
+    if (category === undefined) {
+      category = {
+        total_points: 0,
+        passed_points: 0,
+        test_results: {},
+      };
+      categoryData[testCase.category] = category;
+    }
+
+    category.total_points += testCase.points;
+
+    const outcome = await executeTestCase(testCase);
+    category.test_results[testCase.name] = outcome.report;
+    if (outcome.passed) {
+      category.passed_points += testCase.points;
+    }
+    if (outcome.report.result === TestResult.UNEXPECTED_PARSER_EXIT_CODE) {
+      unexecutedCases[testCase.name] = new UnexecutedReason(
+        UnexecutedReasonCode.MALFORMED_TEST_CASE_FILE,
+        "Test case failed parser validation"
+      );
+    }
+    if (outcome.report.result === TestResult.UNEXPECTED_INTERPRETER_EXIT_CODE) {
+      unexecutedCases[testCase.name] = new UnexecutedReason(
+        UnexecutedReasonCode.CANNOT_EXECUTE,
+        "Test case failed interpreter validation"
+      );
+    }
+  }
+
+  const results: Record<string, CategoryReport> = {};
+  for (const [categoryName, catData] of Object.entries(categoryData)) {
+    results[categoryName] = new CategoryReport(
+      catData.total_points,
+      catData.passed_points,
+      catData.test_results
+    );
+  }
+
+  return results;
+}
+
+function applyIncludeFilters(
+  testCases: TestCaseDefinition[],
+  args: CliArguments,
+  unexecutedCases: Record<string, UnexecutedReason>
+): void {
+  if (args.include || args.include_category || args.include_test) {
+    for (const testCase of testCases) {
+      if (
+        (args.include &&
+          !args.include.includes(testCase.name) &&
+          !args.include.includes(testCase.category)) ||
+        (args.include_category && !args.include_category.includes(testCase.category)) ||
+        (args.include_test && !args.include_test.includes(testCase.name))
+      ) {
+        logger.debug("Exclude test case '%s' due to include filters", testCase.name);
+        unexecutedCases[testCase.name] = new UnexecutedReason(
+          UnexecutedReasonCode.FILTERED_OUT,
+          "Test case excluded by include filters"
+        );
+      }
+    }
+  }
+}
+
+function applyExcludeFilters(
+  testCases: TestCaseDefinition[],
+  args: CliArguments,
+  unexecutedCases: Record<string, UnexecutedReason>
+): void {
+  if (args.exclude || args.exclude_category || args.exclude_test) {
+    for (const testCase of testCases) {
+      if (
+        (args.exclude && args.exclude.includes(testCase.name)) ||
+        (args.exclude_category && args.exclude_category.includes(testCase.category)) ||
+        (args.exclude_test && args.exclude_test.includes(testCase.name))
+      ) {
+        logger.debug("Excluding test case '%s' due to exclude filters", testCase.name);
+        unexecutedCases[testCase.name] = new UnexecutedReason(
+          UnexecutedReasonCode.FILTERED_OUT,
+          "Test case excluded by exclude filters"
+        );
+      }
+    }
+  }
+}
+
+function applyFilters(
+  testCases: TestCaseDefinition[],
+  args: CliArguments,
+  unexecutedCases: Record<string, UnexecutedReason>
+): void {
+  applyIncludeFilters(testCases, args, unexecutedCases);
+  applyExcludeFilters(testCases, args, unexecutedCases);
+}
+
+function handleDryRun(
+  testCases: TestCaseDefinition[],
+  unexecutedCases: Record<string, UnexecutedReason>,
+  args: CliArguments
+): void {
+  logger.info("Dry run enabled, skipping test execution.");
+  const emptyResults: Record<string, CategoryReport> = {};
+  const report = new TestReport({
+    discovered_test_cases: testCases,
+    unexecuted: unexecutedCases,
+    results: emptyResults,
+  });
+  writeResult(report, args.output);
+}
+
+async function main(): Promise<void> {
   /**
    * The main entry point for the SOL26 integration testing script.
    * It parses command-line arguments and executes the testing process.
@@ -216,12 +629,38 @@ function main(): void {
   } else if (args.verbose === 1) {
     logger.level = "info";
   }
+  const discoveredTests = await findTests(args.tests_dir, args.recursive);
+  logger.info(`Found ${String(discoveredTests.length)} test files`);
 
-  // TODO: Your code for discovering and executing the test cases goes here.
+  // parse each test file and build test cases
+  const testCases: TestCaseDefinition[] = [];
+  const unexecutedCases: Record<string, UnexecutedReason> = {};
+  for (const file of discoveredTests) {
+    const meta = await parseTestMetadata(file.test_source_path, unexecutedCases, file);
+    const testCase = buildTestCase(file, meta);
+    testCases.push(testCase);
+  }
 
-  // Example of how to write the final report:
-  const report = new TestReport({ discovered_test_cases: [], unexecuted: {}, results: {} });
+  const foundTestCases = testCases;
+
+  logger.info(`Parsed ${String(testCases.length)} test cases`);
+
+  applyFilters(testCases, args, unexecutedCases);
+
+  if (args.dry_run) {
+    handleDryRun(testCases, unexecutedCases, args);
+    return;
+  }
+
+  // Execute tests and get results
+  const testResults = await runTests(testCases, unexecutedCases);
+
+  const report = new TestReport({
+    discovered_test_cases: foundTestCases,
+    unexecuted: unexecutedCases,
+    results: testResults,
+  });
   writeResult(report, args.output);
 }
 
-main();
+void main();

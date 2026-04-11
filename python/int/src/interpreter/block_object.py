@@ -26,7 +26,7 @@ class BlockObject(SolObject):
         super().__init__("Block", None)
         self.block = block  # the Block from input_model — holds parameters and assigns
         self.interpreter: Interpreter | None = None  # Reference to interpreter for evaluation
-        self.captured_vars: dict[str, SolObject] = {}
+        self.captured_self: SolObject | None = None  # self captured at block creation time
 
     def sol_new(self) -> BlockObject:
         """Creates new instance"""
@@ -51,7 +51,12 @@ class BlockObject(SolObject):
 
         saved_vars = self.interpreter.variables.copy()
 
-        local_vars: dict[str, SolObject] = self.captured_vars.copy()
+        # Start with a new scope that inherits from outer scope
+        local_vars: dict[str, SolObject] = saved_vars.copy()
+
+        # Restore the captured self (lexical closure - self from creation time, not execution time)
+        if self.captured_self is not None:
+            local_vars["self"] = self.captured_self
 
         # Add parameter bindings
         for i, param in enumerate(self.block.parameters):
@@ -72,23 +77,20 @@ class BlockObject(SolObject):
                 if var_name in [param.name for param in self.block.parameters]:
                     raise InterpreterError(ErrorCode.SEM_COLLISION, "Cannot assign to parameter")
 
-                local_vars[var_name] = result
                 self.interpreter.variables[var_name] = result
-
-            param_names = {param.name for param in self.block.parameters}
-            for var_name, var_value in self.interpreter.variables.items():
-                if var_name not in param_names:
-                    self.captured_vars[var_name] = var_value
 
             return result
 
         finally:
-            # Put variable changes back into the outer scope
-            self.interpreter.variables = saved_vars
+            # Update outer scope with any changes made in block
+            # (except parameter names which are local to the block)
             param_names = {param.name for param in self.block.parameters}
-            for var_name, var_value in self.captured_vars.items():
-                if var_name not in param_names:
-                    self.interpreter.variables[var_name] = var_value
+            for var_name, var_value in self.interpreter.variables.items():
+                if var_name not in param_names and var_name != "self":
+                    saved_vars[var_name] = var_value
+
+            # Restore outer scope
+            self.interpreter.variables = saved_vars
 
     def while_true(self, body: SolObject) -> SolObject:
         """Execute body block while condition (self) evaluates to true"""

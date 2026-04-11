@@ -39,8 +39,8 @@ class Interpreter:
         self.classes: dict[str, ClassDef] = {}
         self.xml_tree: etree._ElementTree | None = None
         self.root: etree._Element | None = None
-        self.current_method_class: str | None = None
-        self.current_method_selector: str | None = None
+        self.current_method_class: str | None = None  # Helper for super handling
+        self.current_method_selector: str | None = None  # helper for super handling
 
     def load_program(self, source_file_path: Path) -> None:
         """
@@ -108,7 +108,8 @@ class Interpreter:
             block_model = Block.from_xml_tree(node)  # type: ignore[arg-type]
             block_obj = BlockObject(block_model)
             block_obj.interpreter = self
-            block_obj.captured_vars = self.variables.copy()  # Capture lexical scope
+            # Capture the current self at block creation time (lexical closure)
+            block_obj.captured_self = self.variables.get("self", nil)
             return block_obj
 
         if node.tag == "send":
@@ -132,6 +133,7 @@ class Interpreter:
 
         if var_name not in self.variables:
             raise InterpreterError(ErrorCode.SEM_UNDEF, f"Undefined variable: {var_name}")
+
         return self.variables[var_name]
 
     def _handle_super_call(self, selector: str, sender: etree._Element) -> SolObject:
@@ -569,7 +571,6 @@ class Interpreter:
             empty_block = Block(arity=0, parameters=[], assigns=[])
             block_obj = BlockObject(empty_block)
             block_obj.interpreter = self
-            block_obj.captured_vars = self.variables.copy()
             return block_obj
 
         return output.sol_new()
@@ -655,6 +656,7 @@ class Interpreter:
                 result = self.evaluate_node(expr_xml)  # type: ignore[arg-type]
 
                 var_name = assign.target.name
+
                 if var_name != "_":
                     self.variables[var_name] = result
 
